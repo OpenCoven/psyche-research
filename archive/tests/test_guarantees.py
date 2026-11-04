@@ -464,6 +464,28 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
     def setUp(self):
         self.accounts()
 
+    def test_incomplete_submission_links_errors_and_retains_unsaved_input_privately(self):
+        submission = self.draft()
+        self.client.force_login(self.author)
+        title = 'SYNTHETIC retained <draft> title'
+        response = self.client.post(reverse('edit', args=[submission.pk]), urlencode({
+            'title': title, 'kind': Submission.Kind.EXPERIMENT,
+            'revision': submission.revision, 'action': 'submit',
+        }), content_type='application/x-www-form-urlencoded')
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'aria-label="Form errors"', status_code=400)
+        for name in ('byline', 'abstract', 'rights_confirmed', 'privacy_confirmed'):
+            with self.subTest(field=name):
+                self.assertContains(response, f'href="#id_{name}"', status_code=400)
+                self.assertContains(response, f'id="id_{name}"', status_code=400)
+        self.assertContains(response, 'value="SYNTHETIC retained &lt;draft&gt; title"', status_code=400)
+        self.assertIn('no-store', response.headers['Cache-Control'])
+        submission.refresh_from_db()
+        self.assertEqual(submission.title, '')
+        self.assertEqual(submission.revision, 0)
+        self.assertEqual(submission.state, Submission.State.DRAFT)
+        self.assertFalse(Version.objects.exists())
+
     def test_anonymous_public_routes_never_reveal_private_sentinels(self):
         secret = 'SYNTHETIC-PRIVATE-MANUSCRIPT-73ad2'
         submission = self.submitted(data=content(title=secret, abstract=secret, artifacts='https://example.org/' + secret))
