@@ -1,0 +1,43 @@
+{
+  "run_id": 41830343693,
+  "url": "https://github.com/OpenCoven/psyche-research/actions/runs/41830343693",
+  "event": "pull_request",
+  "head_sha": "86bf47a98603a4e33d9ba6cf9ffe0c9870876ce1",
+  "status": "completed",
+  "conclusion": "success",
+  "source_tree": "8db4ae8d3e663a06d034d1027477025865a6ef79",
+  "jobs": [
+    {
+      "id": 126575615402,
+      "name": "postgres-guarantees",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 126575615762,
+      "name": "guarantees",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "tests": {
+    "sqlite": {
+      "found": 71,
+      "executed": 66,
+      "skipped": 5,
+      "seconds": 50.971,
+      "result": "OK; five dedicated PostgreSQL tests explicitly skipped"
+    },
+    "postgresql": {
+      "executed": 5,
+      "skipped": 0,
+      "seconds": 3.199,
+      "version": "16.15",
+      "result": "OK; actual separate-connection races, immutable guards, migrations and verifier corruption tests"
+    }
+  },
+  "limits": [
+    "First run used the default pull-request checkout; next workflow revision pins the exact PR head explicitly.",
+    "No Vercel build/runtime, managed-provider backup/restore, browser accessibility or human pilot acceptance is established."
+  ]
+}
