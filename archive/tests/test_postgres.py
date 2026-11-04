@@ -2,7 +2,7 @@
 
 SQLite runs skip these tests honestly. Set POSTGRES_GUARANTEE_TESTS=1 and
 LOCAL_DEVELOPMENT=1 with DATABASE_URL naming a test_ database for a live run.
-No schema outside the randomly created cr_test_ schema is migrated or dropped.
+Only randomly created cr_test_ schemas and a newly created test_coven_restore_ database are changed or dropped.
 """
 import os
 from pathlib import Path
@@ -106,13 +106,13 @@ def publish(row):
 
 @skipUnless(connection.vendor == 'postgresql', 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.')
 class PostgreSQLGuarantees(SimpleTestCase):
-    def run_in_disposable_schema(self, body):
+    def run_in_disposable_schema(self, body, timeout=120):
         # This subprocess has ordinary connections rather than Django test flush or disabled guards.
         indented = textwrap.indent(textwrap.dedent(body).strip(), '    ')
         script = SCHEMA_HARNESS.replace('    BODY', indented)
         environment = {**os.environ, 'DJANGO_SETTINGS_MODULE': 'config.settings'}
         result = subprocess.run([sys.executable, '-c', script], cwd=ROOT, env=environment,
-                                capture_output=True, text=True, timeout=120)
+                                capture_output=True, text=True, timeout=timeout)
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
 
     def test_live_migrations_freeze_publication_withdrawal_and_six_immutable_guards(self):
@@ -254,6 +254,257 @@ with patch('archive.middleware.time.time', return_value=1700000000), ThreadPoolE
 assert outcomes.count(200) == 10 and outcomes.count(429) == 2, outcomes
 assert RateBucket.objects.count() == 1 and RateBucket.objects.get().count == 10
 ''')
+
+    def test_live_logical_dump_restore_preserves_representative_records_and_prepares_only_new_target(self):
+        self.run_in_disposable_schema(FIXTURE_IMPORTS + r'''
+import hashlib
+import json
+from io import StringIO
+from pathlib import Path
+import re
+import secrets
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import textwrap
+from urllib.parse import urlsplit, urlunsplit
+from datetime import timedelta
+from django.contrib.sessions.backends.db import SessionStore
+from django.contrib.sessions.models import Session
+from django.utils import timezone
+from archive.models import Appeal, Report, RateBucket, Work, CONTENT_FIELDS
+
+# Use the exact ephemeral CI service's clients rather than an unrelated runner version.
+container = os.environ.get('POSTGRES_TEST_CONTAINER_ID', '')
+assert shutil.which('docker') and re.fullmatch(r'[a-f0-9]{12,64}', container), 'Logical recovery requires the dedicated PostgreSQL CI service container'
+assert db.pg_version // 10000 == 16, 'This recovery drill requires the PostgreSQL 16 service'
+sensitive_values = [os.environ.get('DATABASE_URL'), database.get('PASSWORD'), database.get('USER'), str(database['NAME'])]
+
+def container_command(tool, *arguments, input_file=None, output_file=None):
+    assert tool in ('pg_dump', 'pg_restore')
+    script = 'case "$POSTGRES_DB" in test_*) ;; *) exit 97;; esac; test "$POSTGRES_DB" = "$1" || exit 98; shift; export PGUSER="$POSTGRES_USER" PGDATABASE="$POSTGRES_DB" PGPASSWORD="$POSTGRES_PASSWORD"; exec "$@"'
+    command = ['docker', 'exec', '-i', container, 'sh', '-c', script, 'coven-recovery-client', str(database['NAME']), tool, *arguments]
+    result = subprocess.run(command, stdin=input_file, stdout=output_file if output_file is not None else subprocess.PIPE,
+                            stderr=subprocess.PIPE, timeout=60)
+    if result.returncode:
+        # Never let connection/session credentials from tool errors enter test logs.
+        diagnostic = result.stderr.decode('utf-8', 'replace')
+        for private in sensitive_values:
+            if private:
+                diagnostic = diagnostic.replace(private, '[redacted]')
+        raise AssertionError(tool + ' failed: ' + diagnostic[:2000])
+    return result.stdout if output_file is None else b''
+
+for tool in ('pg_dump', 'pg_restore'):
+    version = container_command(tool, '--version').decode()
+    assert re.search(r'\(PostgreSQL\) 16\.', version), 'Recovery client/server major versions differ'
+
+# Cover private intake, human decisions, appeals, reports, exact versions, withdrawal, roles and sessions.
+withdrawn_sentinel = 'SYNTHETIC-PG-RESTORE-WITHDRAWN-BODY-8c410'
+first = publish(submit(author, content(title='SYNTHETIC withdrawn version one', claims=withdrawn_sentinel)))
+second = publish(submit(author, content(title='SYNTHETIC withdrawn version two', claims=withdrawn_sentinel,
+                                      change_note='Synthetic correction preserved by logical restore.'), first.work_id))
+services.withdraw(author, first.work_id, 'Synthetic logical-restore withdrawal notice.')
+visible = publish(submit(author, content(title='SYNTHETIC visible restored publication')))
+private_decision = 'SYNTHETIC-PG-RESTORE-PRIVATE-DECISION-63d21'
+private_appeal = 'SYNTHETIC-PG-RESTORE-PRIVATE-APPEAL-6c326'
+private_report = 'SYNTHETIC-PG-RESTORE-PRIVATE-REPORT-92ab1'
+declined = submit(author, content(title='SYNTHETIC declined private submission'))
+services.decide(moderator, declined.pk, 'decline', private_decision, declined.revision, conflicts='None; synthetic restore fixture')
+appeal = services.appeal(author, declined.pk, private_appeal)
+report = services.report(visible.work_id, private_report)
+private_draft = 'SYNTHETIC-PG-RESTORE-PRIVATE-DRAFT-4b199'
+draft = services.create_submission(author)
+draft = services.save_submission(author, draft.pk, content(title=private_draft, methods='', claims='', limitations=''), draft.revision)
+pending_title = 'SYNTHETIC-PG-RESTORE-PRIVATE-PENDING-bb277'
+pending = submit(author, content(title=pending_title))
+author_password = secrets.token_urlsafe(32)
+author.set_password(author_password)
+author.save(update_fields=['password'])
+sensitive_values.append(author_password)
+session = SessionStore()
+session['_auth_user_id'] = str(author.pk)
+session['_auth_user_backend'] = 'django.contrib.auth.backends.ModelBackend'
+session['_auth_user_hash'] = author.get_session_auth_hash()
+session.save()
+sensitive_values.extend([session.session_key, Session.objects.get(session_key=session.session_key).session_data])
+RateBucket.objects.create(key='synthetic-postgres-logical-restore', count=3, expires_at=timezone.now()+timedelta(minutes=5))
+
+def source_state():
+    return {
+        'counts': {model._meta.label: model.objects.count() for model in (User, Group, Work, Submission, Version, Decision, Event, Appeal, Report, Session, RateBucket)},
+        'capacity': list(Capacity.objects.values('intake_open','queue_limit','per_author_limit','draft_limit','revision')),
+        'versions': list(Version.objects.order_by('id').values('id','work_id','number','digest','snapshot','published_at')),
+        'submissions': list(Submission.objects.order_by('id').values('id','state','revision','digest','frozen_snapshot',*CONTENT_FIELDS)),
+        'events': list(Event.objects.order_by('id').values('id','actor_id','kind','target','details','created_at')),
+        'withdrawals': list(Work.objects.order_by('id').values('id','withdrawn_at','withdrawal_reason')),
+        'roles': list(moderator.groups.order_by('name').values_list('name',flat=True)),
+        'accounts': [{'id':user.pk,'username':user.username,'password':user.password,'is_active':user.is_active,
+                      'is_staff':user.is_staff,'is_superuser':user.is_superuser,'last_login':user.last_login,
+                      'groups':list(user.groups.order_by('name').values_list('name',flat=True))}
+                     for user in User.objects.order_by('pk')],
+    }
+
+before = source_state()
+sensitive_values.extend(item['password'] for item in before['accounts'])
+baseline_events = Event.objects.count()
+assert before['counts']['sessions.Session'] == 1 and before['counts']['archive.RateBucket'] == 1
+assert before['capacity'][0]['intake_open']
+fixture = {
+    'schema': schema, 'author_id': author.pk, 'other_id': other.pk, 'moderator_id': moderator.pk,
+    'draft_id': str(draft.pk), 'pending_id': str(pending.pk), 'declined_id': str(declined.pk),
+    'withdrawn_work_id': str(first.work_id), 'visible_work_id': str(visible.work_id),
+    'appeal_id': appeal.pk, 'report_id': str(report.pk), 'session_key': session.session_key,
+    'private_draft': private_draft, 'pending_title': pending_title, 'private_decision': private_decision,
+    'private_appeal': private_appeal, 'private_report': private_report, 'withdrawn_sentinel': withdrawn_sentinel,
+    'event_count': baseline_events, 'capacity': before['capacity'][0],
+    'accounts': before['accounts'], 'author_password':author_password,
+    'events': [{**item,'created_at':item['created_at'].isoformat()} for item in before['events']],
+    'versions': [{'id': item['id'], 'work_id': str(item['work_id']), 'number': item['number'],
+                  'digest': item['digest'], 'snapshot': item['snapshot'], 'published_at': item['published_at'].isoformat()}
+                 for item in before['versions']],
+}
+target = 'test_coven_restore_' + uuid.uuid4().hex
+assert target != database['NAME'] and re.fullmatch(r'test_coven_restore_[a-f0-9]{32}', target)
+created_target = False
+failed = False
+try:
+    # CREATE DATABASE refuses an existing target; only a successfully created UUID target is cleaned up.
+    with db.cursor() as cursor:
+        cursor.execute('CREATE DATABASE ' + db.ops.quote_name(target))
+    created_target = True
+    with tempfile.TemporaryDirectory(prefix='coven-postgres-private-dump-') as directory:
+        private_directory = Path(directory)
+        assert stat.S_IMODE(private_directory.stat().st_mode) == 0o700
+        dump_path = private_directory / 'synthetic-logical-snapshot.dump'
+        descriptor = os.open(dump_path, os.O_CREAT|os.O_EXCL|os.O_WRONLY, 0o600)
+        with os.fdopen(descriptor,'wb') as output:
+            container_command('pg_dump', '--format=custom', '--strict-names', '--no-owner', '--no-acl', '--schema='+schema, output_file=output)
+            output.flush()
+            os.fsync(output.fileno())
+        assert stat.S_IMODE(dump_path.stat().st_mode) == 0o600
+        snapshot_hash = hashlib.sha256(dump_path.read_bytes()).hexdigest()
+        assert dump_path.read_bytes().startswith(b'PGDMP'), 'Expected a PostgreSQL custom-format archive'
+        with dump_path.open('rb') as snapshot:
+            container_command('pg_restore', '--dbname='+target, '--exit-on-error', '--single-transaction', '--no-owner', '--no-acl', input_file=snapshot)
+        assert hashlib.sha256(dump_path.read_bytes()).hexdigest() == snapshot_hash
+
+        parsed = urlsplit(os.environ['DATABASE_URL'])
+        target_url = urlunsplit(parsed._replace(path='/'+target))
+        target_environment = {**os.environ, 'DATABASE_URL':target_url, 'RECOVERY_MODE':'isolated-restore',
+                              'POSTGRES_RESTORE_FIXTURE':json.dumps(fixture)}
+        target_script = textwrap.dedent(r"""
+import os,json
+from io import StringIO
+import django
+django.setup()
+from django.conf import settings
+from django.core.management import call_command
+from django.db import connections
+from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
+from django.test import Client
+from django.urls import reverse
+from archive.models import Capacity,Version,Submission,Work,Decision,Appeal,Report,Event,RateBucket
+from archive import services
+from archive.views import public_versions
+fixture=json.loads(os.environ['POSTGRES_RESTORE_FIXTURE'])
+database=connections.databases['default']
+assert settings.LOCAL_DEVELOPMENT and database['NAME'].startswith('test_coven_restore_') and os.environ.get('POSTGRES_GUARANTEE_TESTS')=='1'
+options=dict(database.get('OPTIONS',{}))
+options['options']=(options.get('options','')+' -c search_path='+fixture['schema']).strip()
+database['OPTIONS']=options
+db=connections['default'];db.settings_dict['OPTIONS']=options
+assert Session.objects.count()==RateBucket.objects.count()==1
+assert Capacity.objects.get(pk=1).intake_open
+call_command('verify_archive',stdout=StringIO())
+call_command('prepare_restored_archive',expected_database=database['NAME'],expected_host=database['HOST'],
+             expected_port=int(database['PORT'] or 5432),reason='Synthetic PostgreSQL logical restore rehearsal.',stdout=StringIO())
+assert Session.objects.count()==RateBucket.objects.count()==0
+capacity=Capacity.objects.get(pk=1)
+assert not capacity.intake_open and capacity.revision==fixture['capacity']['revision']+1
+assert (capacity.queue_limit,capacity.per_author_limit,capacity.draft_limit)==(fixture['capacity']['queue_limit'],fixture['capacity']['per_author_limit'],fixture['capacity']['draft_limit'])
+assert Event.objects.count()==fixture['event_count']+1
+recovery=Event.objects.get(kind='restored_paused')
+assert recovery.details['scope']=='offline_preparation_only'
+assert recovery.actor_id is None
+prior_events=[{'id':item.id,'actor_id':item.actor_id,'kind':item.kind,'target':item.target,'details':item.details,'created_at':item.created_at.isoformat()} for item in Event.objects.exclude(pk=recovery.pk).order_by('id')]
+assert prior_events==fixture['events'], 'Historical audit records changed during logical restore'
+restored_versions=[{'id':item.id,'work_id':str(item.work_id),'number':item.number,'digest':item.digest,'snapshot':item.snapshot,'published_at':item.published_at.isoformat()} for item in Version.objects.order_by('id')]
+assert restored_versions==fixture['versions'], 'Publication content, digest, identifiers or history changed during restore'
+assert list(Version.objects.filter(work_id=fixture['withdrawn_work_id']).order_by('number').values_list('number',flat=True))==[1,2]
+assert Work.objects.get(pk=fixture['withdrawn_work_id']).withdrawn_at is not None
+assert Decision.objects.get(submission_id=fixture['declined_id']).reason==fixture['private_decision']
+restored_appeal=Appeal.objects.select_related('decision').get(pk=fixture['appeal_id'])
+assert restored_appeal.reason==fixture['private_appeal'] and str(restored_appeal.decision.submission_id)==fixture['declined_id']
+restored_report=Report.objects.get(pk=fixture['report_id'])
+assert restored_report.reason==fixture['private_report'] and str(restored_report.work_id)==fixture['visible_work_id']
+User=get_user_model()
+restored_accounts=[{'id':user.pk,'username':user.username,'password':user.password,'is_active':user.is_active,
+                    'is_staff':user.is_staff,'is_superuser':user.is_superuser,'last_login':user.last_login,
+                    'groups':list(user.groups.order_by('name').values_list('name',flat=True))}
+                   for user in User.objects.order_by('pk')]
+assert restored_accounts==fixture['accounts'], 'Restored account identity, password hash, access state or roles changed'
+moderator=User.objects.get(pk=fixture['moderator_id'])
+assert services.is_moderator(moderator) and not services.is_moderator(User.objects.get(pk=fixture['author_id']))
+pending=Submission.objects.get(pk=fixture['pending_id'])
+assert pending.state=='submitted' and pending.frozen_snapshot['title']==fixture['pending_title']
+draft=Submission.objects.get(pk=fixture['draft_id'])
+assert draft.state=='draft' and draft.revision==1 and draft.title==fixture['private_draft']
+reader=Client()
+archive=reader.get(reverse('archive'))
+assert archive.status_code==200 and b'SYNTHETIC visible restored publication' in archive.content
+for key in ('private_draft','pending_title','private_decision','private_appeal','private_report','withdrawn_sentinel'):
+    assert fixture[key].encode() not in archive.content
+assert list(public_versions().values_list('work_id',flat=True))==[Work.objects.get(pk=fixture['visible_work_id']).pk]
+for number in (1,2):
+    for route in ('version','export_version'):
+        response=reader.get(reverse(route,args=[fixture['withdrawn_work_id'],number]))
+        assert response.status_code==200 and fixture['withdrawn_sentinel'].encode() not in response.content
+assert reader.get(reverse('export_submission',args=[fixture['draft_id']])).status_code==302
+# A copied pre-backup authenticated cookie must no longer grant access.
+reader.cookies[settings.SESSION_COOKIE_NAME]=fixture['session_key']
+assert reader.get(reverse('export_submission',args=[fixture['draft_id']])).status_code==302
+owner=Client()
+assert owner.login(username=User.objects.get(pk=fixture['author_id']).username,password=fixture['author_password']), 'A restored contributor could not authenticate with the original password'
+assert owner.get(reverse('export_submission',args=[fixture['draft_id']])).json()['research']['title']==fixture['private_draft']
+resumed=services.save_submission(User.objects.get(pk=fixture['author_id']),draft.pk,{'methods':'Synthetic draft resumed after logical restore.'},draft.revision)
+assert resumed.state=='draft' and resumed.revision==2 and resumed.methods=='Synthetic draft resumed after logical restore.'
+owner_export=owner.get(reverse('export_submission',args=[fixture['declined_id']]))
+assert fixture['private_decision'].encode() in owner_export.content and fixture['private_appeal'].encode() in owner_export.content
+other=Client();other.force_login(User.objects.get(pk=fixture['other_id']))
+assert other.get(reverse('export_submission',args=[fixture['draft_id']])).status_code==404
+moderation=Client();moderation.force_login(moderator)
+assert fixture['pending_title'].encode() in moderation.get(reverse('queue')).content
+operations=moderation.get(reverse('operations'))
+assert fixture['private_appeal'].encode() in operations.content and fixture['private_report'].encode() in operations.content
+call_command('verify_archive',stdout=StringIO())
+connections.close_all()
+""")
+        prepared = subprocess.run([sys.executable,'-c',target_script],env=target_environment,capture_output=True,text=True,timeout=60)
+        if prepared.returncode:
+            diagnostic=prepared.stderr
+            for private in [target_url,*sensitive_values]:
+                if private:
+                    diagnostic=diagnostic.replace(private,'[redacted]')
+            raise AssertionError('Restored target verification failed: '+diagnostic[:3000])
+    assert source_state()==before, 'Logical restore or target preparation changed the source database'
+    assert Session.objects.filter(session_key=session.session_key).exists()
+    assert Event.objects.filter(kind='restored_paused').count()==0
+except BaseException:
+    failed=True
+    raise
+finally:
+    if created_target:
+        try:
+            with db.cursor() as cursor:
+                cursor.execute('DROP DATABASE '+db.ops.quote_name(target)+' WITH (FORCE)')
+        except Exception:
+            if not failed:
+                raise
+''', timeout=240)
 
     def test_live_verifier_rejects_weakened_function_conditional_or_scoped_trigger_and_missing_column(self):
         self.run_in_disposable_schema(FIXTURE_IMPORTS + '''

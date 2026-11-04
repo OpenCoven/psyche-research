@@ -107,6 +107,18 @@ pg_restore --exit-on-error --single-transaction --no-owner --no-acl --dbname arc
 
 Re-establish intended ownership and grants on the restore target through the approved role setup, since the sample deliberately omits source ownership/ACL replay. Validate counts and foreign keys, exact snapshot digests, migration state, account/role behavior, private sentinel exclusion, queue limits, published histories, pending corrections, appeals and withdrawal suppression. Never point a restore drill at the serving database or treat an in-place destructive test as necessary evidence. Confirm that restored sessions, deleted records, restricted data and old credentials are handled according to the adopted recovery and retention policies.
 
+After restoring to the explicitly approved separate target, keep every serving process disconnected. The offline runner can use `prepare_restored_archive` only with `RECOVERY_MODE=isolated-restore`, `VERCEL` absent, and explicit expected host, port and database identifiers matching the approved endpoint. It also checks PostgreSQL's connected database name. These identifiers express intended isolation; they do not stop a live process or prove the operator chose the correct resource. The command verifies the archive and atomically revokes sessions, clears rate buckets, pauses intake and records an operator-reason event. Verification or audit failure rolls back its changes and emits a redacted error. It does not restore data, change a serving target, repair role grants, or certify safety.
+
+```sh
+RECOVERY_MODE=isolated-restore python manage.py prepare_restored_archive \
+  --expected-host APPROVED_RESTORE_HOST \
+  --expected-port 5432 \
+  --expected-database APPROVED_RESTORE_DATABASE \
+  --reason 'Approved isolated recovery drill reference'
+```
+
+Keep connection credentials in the approved runner's environment or secret service, never in those arguments or logs. Reconcile every withdrawal, privacy/erasure decision, account deactivation, password compromise and moderator revocation since the snapshot against the current confidential operator record before any cutover. Restored data can resurrect access or unsafe content even when every digest and schema check passes. The CI logical-recovery test uses only synthetic records, a dedicated test database and a new generated restore database; it proves the exercised dump/restore path, not a managed provider's backup service, PITR, encryption or real operating access.
+
 Logical dumps do not establish point-in-time recovery. PostgreSQL's continuous-archiving procedure relies on a base backup and the necessary WAL history; provider PITR must be tested through the provider's documented mechanism. See [PostgreSQL continuous archiving and PITR](https://www.postgresql.org/docs/current/continuous-archiving.html), checked 2026-11-04. If the selected plan lacks PITR, document the actual backup window and obtain acceptance of that limitation; do not advertise PITR from a successful `pg_dump` round trip.
 
 A practical drill restores into a separate approved database, opens it only through an isolated application, verifies private/public behavior, records elapsed time and data-loss boundary, and proves the operator can recover access without relying on a lost serving function. Keep a restricted encrypted off-host copy if that is part of the accepted plan, verify its recoverability and expiry, and record remaining gaps. No hosted drill is claimed here.

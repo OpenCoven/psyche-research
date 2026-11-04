@@ -72,5 +72,8 @@ jobs:
       - run: python manage.py migrate --noinput
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py check --fail-level WARNING
-      - run: python manage.py test archive.tests.test_postgres --verbosity 2
+      - name: Live PostgreSQL guarantees and logical recovery drill
+        env:
+          POSTGRES_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
+        run: python manage.py test archive.tests.test_postgres --verbosity 2
       - run: python manage.py verify_archive
