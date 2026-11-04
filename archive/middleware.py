@@ -41,7 +41,8 @@ class BoundaryMiddleware:
         form_action = "'self' https://api.workos.com" if settings.AUTH_PROVIDER == 'workos' else "'self'"
         response['Content-Security-Policy']=f"default-src 'none'; style-src 'self'; img-src 'self'; form-action {form_action}; base-uri 'none'; frame-ancestors 'none'"
         response['Permissions-Policy']='camera=(), microphone=(), geolocation=()'
-        response['Referrer-Policy']='no-referrer'
+        # Keep paths and OAuth query strings private without making browser POST Origin null.
+        response['Referrer-Policy']='strict-origin'
         response['Cache-Control']='private, no-store'
         if not (request.path == '/' or request.path.startswith('/research/') or request.path in ['/archive/','/policies/','/health/']):
             response['X-Robots-Tag']='noindex, nofollow'

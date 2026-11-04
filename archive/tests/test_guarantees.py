@@ -530,6 +530,21 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
         self.assertEqual(Submission.objects.count(), 0)
         self.assertEqual(client.get(reverse('logout')).status_code, 405)
 
+    def test_browser_login_keeps_csrf_origin_checks_and_query_private_referrer_policy(self):
+        browser = Client(enforce_csrf_checks=True)
+        page = browser.get(reverse('login'), secure=True)
+        self.assertEqual(page['Referrer-Policy'], 'strict-origin')
+        data = urlencode({'username': self.author.username, 'password': 'synthetic-password-12345',
+                          'csrfmiddlewaretoken': browser.cookies['csrftoken'].value})
+        for origin in ['null', 'https://attacker.invalid']:
+            response = browser.post(reverse('login'), data, secure=True,
+                content_type='application/x-www-form-urlencoded', HTTP_ORIGIN=origin)
+            self.assertEqual(response.status_code, 403)
+        response = browser.post(reverse('login'), data, secure=True,
+            content_type='application/x-www-form-urlencoded', HTTP_ORIGIN='https://testserver')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(browser.get(reverse('dashboard'), secure=True).status_code, 200)
+
     def test_database_contention_returns_controlled_retry_without_partial_draft(self):
         self.client.force_login(self.author)
         self.client.raise_request_exception = False

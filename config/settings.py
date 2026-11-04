@@ -97,7 +97,7 @@ SECURE_HSTS_SECONDS = 31536000 if not LOCAL_DEVELOPMENT else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = 'no-referrer'
+SECURE_REFERRER_POLICY = 'strict-origin'
 X_FRAME_OPTIONS = 'DENY'
 # TLS terminates in WSGI or a separately reviewed trusted proxy. Never trust forwarded headers by default.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 96 * 1024
