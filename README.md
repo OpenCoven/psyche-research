@@ -10,6 +10,8 @@ Read [project status](docs/STATUS.md), [decisions](docs/DECISIONS.md), [founder 
 
 ## Local development
 
+WorkOS login is selected by the user. See [WorkOS setup](docs/WORKOS.md) for the implemented AuthKit flow, required server-side configuration, existing-account identity linking and pending account/project authorization. Local development below retains `AUTH_PROVIDER=local` until real WorkOS staging configuration is supplied; no placeholder credentials enable hosted login.
+
 Use Python 3.13. The dependency file pins hashes; normal installation requires package-registry network access. Runtime core workflows require no network service or model provider. The commands below create only an empty local database; they create no participant accounts and no research fixtures.
 
 ```sh

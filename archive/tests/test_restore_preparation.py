@@ -10,7 +10,7 @@ from django.db import OperationalError, connection
 from django.test import TestCase
 from django.utils import timezone
 
-from archive.models import Capacity, Event, RateBucket
+from archive.models import Capacity, Event, RateBucket, WorkOSLoginAttempt
 
 
 class RestorePreparation(TestCase):
@@ -20,6 +20,8 @@ class RestorePreparation(TestCase):
         self.capacity.save()
         Session.objects.create(session_key='synthetic-restored-session', session_data='synthetic-only', expire_date=timezone.now())
         RateBucket.objects.create(key='synthetic-restored-rate', count=4, expires_at=timezone.now())
+        WorkOSLoginAttempt.objects.create(state_hash='synthetic-restored-state', browser_hash='synthetic-browser',
+            verifier='synthetic-verifier', expires_at=timezone.now())
         self.arguments = {'expected_database': str(connection.settings_dict['NAME']),
                           'expected_host': 'local-file', 'expected_port': 0,
                           'reason': 'Synthetic isolated restore approval reference'}
@@ -35,6 +37,7 @@ class RestorePreparation(TestCase):
         self.assertTrue(self.capacity.intake_open)
         self.assertTrue(Session.objects.filter(session_key='synthetic-restored-session').exists())
         self.assertTrue(RateBucket.objects.filter(pk='synthetic-restored-rate').exists())
+        self.assertTrue(WorkOSLoginAttempt.objects.filter(pk='synthetic-restored-state').exists())
         self.assertFalse(Event.objects.filter(kind='restored_paused').exists())
 
     def test_offline_mode_is_required_before_database_verification_or_changes(self):
@@ -65,6 +68,7 @@ class RestorePreparation(TestCase):
             self.assertIn('revoked access since the snapshot', output)
             self.assertFalse(Session.objects.exists())
             self.assertFalse(RateBucket.objects.exists())
+            self.assertFalse(WorkOSLoginAttempt.objects.exists())
             self.capacity.refresh_from_db()
             self.assertFalse(self.capacity.intake_open)
             self.assertEqual(Event.objects.filter(kind='restored_paused').count(), 1)

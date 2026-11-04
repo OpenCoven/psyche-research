@@ -2,6 +2,12 @@
 
 Updated 2026-11-04. Engineering choices below are reversible implementation decisions under the task authorization. Policy/terms adoption, an accountable operator, hosting, new persistent production credentials, costs, outreach, deployment, and pilot opening remain human approval gates. No earlier archive charter or discussion was available in the repository or narrow neighboring documentation search; the attached task is the product charter.
 
+## D008: user-selected WorkOS authentication
+
+The user requested WorkOS login and project creation on 2026-11-04. [WORKOS.md](WORKOS.md) describes the implemented AuthKit adapter and staging setup. This supersedes the password-only authentication recommendation when WorkOS is configured; local mode remains available for existing offline development. Provider login composes with existing local account ownership and explicit moderator roles. Immutable client/subject bindings are operator-controlled; email matches, WorkOS roles and provider account creation cannot claim a local identity or publication permission. No automatic participant enrollment, invitation or intake opening follows from login.
+
+The request authorizes WorkOS/project setup, but the account's dashboard-device authorization has not completed and no actual provider project or credential is configured. Exact account/team, staging identifiers, hosted callbacks and protected Vercel project still need access and read-back. Payment, legal acceptance, public launch and real intake remain outside this setup. Source/fixture/CI evidence and actual WorkOS/browser/hosted acceptance remain separate.
+
 ## D001: curated overlay before a file archive
 
 Select a curated practitioner research publication with structured original notes and links to author-managed artifacts. This is an independently operated publication record over existing artifact hosts, rather than a replacement general-purpose repository or a claim to compete with mature preservation services. Compare alternatives in [RESEARCH.md](RESEARCH.md). Durable artifact preservation, DOI registration, academic recognition, demand and repeat readership are unverified hypotheses. Stable application version URLs and JSON citation metadata are implemented locally; domain ownership and long-term operation are not established.

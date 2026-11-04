@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.contrib.sessions.models import Session
 from django.db import connection, transaction
 
-from archive.models import Capacity, Event, RateBucket
+from archive.models import Capacity, Event, RateBucket, WorkOSLoginAttempt
 
 
 class Command(BaseCommand):
@@ -47,6 +47,7 @@ class Command(BaseCommand):
                 call_command('verify_archive', stdout=io.StringIO(), stderr=io.StringIO())
                 Session.objects.all().delete()
                 RateBucket.objects.all().delete()
+                WorkOSLoginAttempt.objects.all().delete()
                 capacity.intake_open = False
                 capacity.revision += 1
                 capacity.save(update_fields=['intake_open', 'revision', 'updated_at'])

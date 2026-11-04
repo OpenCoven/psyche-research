@@ -33,6 +33,7 @@ INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'django.
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'archive.middleware.BoundaryMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'archive.workos_auth.WorkOSSessionMiddleware',
     'archive.middleware.WriteLimitMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'config.urls'
@@ -49,6 +50,34 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+if AUTH_PROVIDER not in {'local', 'workos'}:
+    raise ImproperlyConfigured('AUTH_PROVIDER must be local or workos.')
+WORKOS_API_KEY = os.environ.get('WORKOS_API_KEY', '')
+WORKOS_CLIENT_ID = os.environ.get('WORKOS_CLIENT_ID', '')
+WORKOS_REDIRECT_URI = os.environ.get('WORKOS_REDIRECT_URI', '')
+WORKOS_ISSUER = os.environ.get('WORKOS_ISSUER', '')
+WORKOS_COOKIE_PASSWORD = os.environ.get('WORKOS_COOKIE_PASSWORD', '')
+if AUTH_PROVIDER == 'workos':
+    from urllib.parse import urlsplit
+    from cryptography.fernet import Fernet
+    import re
+    try:
+        callback = urlsplit(WORKOS_REDIRECT_URI)
+        issuer = urlsplit(WORKOS_ISSUER)
+        Fernet(WORKOS_COOKIE_PASSWORD.encode())
+        local_callback = LOCAL_DEVELOPMENT and callback.hostname in {'localhost', '127.0.0.1', '::1'}
+        if (not WORKOS_API_KEY.startswith('sk_') or not re.fullmatch(r'client_[A-Za-z0-9]{1,120}', WORKOS_CLIENT_ID)
+            or WORKOS_COOKIE_PASSWORD == SECRET_KEY
+            or callback.scheme not in ({'http', 'https'} if local_callback else {'https'})
+            or callback.hostname not in ALLOWED_HOSTS or callback.username or callback.password
+            or callback.path != '/accounts/workos/callback/' or callback.query or callback.fragment
+            or callback.port == 0 or issuer.port == 0
+            or issuer.scheme != 'https' or not issuer.hostname or issuer.username or issuer.password
+            or issuer.query or issuer.fragment):
+            raise ValueError()
+    except (ValueError, TypeError, UnicodeError):
+        raise ImproperlyConfigured('WorkOS requires a server API key, client ID, distinct Fernet session key, exact allowed callback and configured HTTPS token issuer. Secret values are not logged.') from None
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
