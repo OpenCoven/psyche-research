@@ -1,0 +1,9 @@
+{% load research %}
+<section class="research-section"><h2>Abstract</h2><div class="prose-text">{{ snapshot.abstract|linebreaksbr }}</div></section>
+<section class="research-section"><h2>Methods</h2><div class="prose-text">{{ snapshot.methods|linebreaksbr }}</div></section>
+<section class="research-section"><h2>Results and claims</h2><div class="prose-text">{{ snapshot.claims|linebreaksbr }}</div></section>
+<section class="research-section"><h2>Limitations</h2><div class="prose-text">{{ snapshot.limitations|linebreaksbr }}</div></section>
+<section class="research-section"><h2>Artifacts</h2><p class="small muted">Author-provided references. The archive does not fetch, execute, or validate the linked material.</p><ul class="artifact-text">{% for artifact in snapshot.artifacts|artifact_links %}<li><a href="{{ artifact }}" rel="noreferrer noopener nofollow">{{ artifact }}</a></li>{% empty %}<li>No public artifact links supplied. See methods and provenance for the available evidence.</li>{% endfor %}</ul></section>
+<section class="research-section"><h2>Provenance</h2><div class="prose-text">{{ snapshot.provenance|linebreaksbr }}</div></section>
+<section class="research-section"><h2>AI-assistance disclosure</h2><div class="prose-text">{{ snapshot.ai_disclosure|linebreaksbr }}</div></section>
+{% if snapshot.change_note %}<section class="research-section"><h2>Revision or correction note</h2><div class="prose-text">{{ snapshot.change_note|linebreaksbr }}</div></section>{% endif %}

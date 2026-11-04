@@ -1,0 +1,20 @@
+.git
+.venv
+.env*
+var
+*.sqlite3
+*.sqlite3-*
+__pycache__
+archive/tests
+docs
+deploy
+.github
+
+# Private operator artifacts never belong in source or a deployment upload.
+backups/
+private-exports/
+*.sql
+*.dump
+*.pgdump
+*.backup
+staticfiles/

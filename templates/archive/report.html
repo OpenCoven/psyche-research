@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Report a research record · Coven Research{% endblock %}
+{% block content %}
+<div class="page-width section-space narrow"><header class="page-heading"><p class="eyebrow">PRIVATE HUMAN TRIAGE</p><h1>Help us address a concern.</h1><p class="lede">Report a rights, privacy, safety, abuse, or correction concern about this public record.</p></header><div class="notice">Reports are private to authorized moderators. Avoid including secrets, unnecessary personal data, or copies of harmful material. There is no guaranteed response time.</div><form class="stack-form" method="post">{% csrf_token %}{% include 'archive/_form.html' %}<button class="button" type="submit">Send private report <span aria-hidden="true">→</span></button></form></div>
+{% endblock %}

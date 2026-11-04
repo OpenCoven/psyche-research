@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Coven Research is a bounded, human-moderated archive for evidence from practical work with AI systems.">
+  <title>{% block title %}Coven Research{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'archive/site.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="{% url 'home' %}" aria-label="Coven Research home"><span class="mark" aria-hidden="true">✳</span><span>Coven <strong>Research</strong></span></a>
+      <nav aria-label="Main navigation">
+        <a href="{% url 'archive' %}">Archive</a>
+        <a href="{% url 'policies' %}">How it works</a>
+        {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Your submissions</a>{% if is_moderator %}<a href="{% url 'queue' %}">Moderation</a><a href="{% url 'operations' %}">Operations</a>{% endif %}<form class="inline-form" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-button" type="submit">Sign out</button></form>{% else %}<a class="nav-signin" href="{% url 'login' %}">Contributor sign in <span aria-hidden="true">↗</span></a>{% endif %}
+      </nav>
+    </div>
+  </header>
+  <main id="main" tabindex="-1">
+    {% if messages %}<div class="messages page-width" aria-live="polite">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}</div>{% endif %}
+    {% if error %}<div class="messages page-width"><p class="notice form-errors" role="alert"><strong>The request could not be completed.</strong> {{ error }}</p></div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer page-width">
+    <div><a class="footer-brand" href="{% url 'home' %}">Coven Research</a><p>Practical work. Visible evidence. Room for correction.</p></div>
+    <div><p class="footer-status"><span class="status-dot" aria-hidden="true"></span> Pilot preparation</p><a href="{% url 'policies' %}">Eligibility, policies &amp; status</a></div>
+  </footer>
+</body>
+</html>
