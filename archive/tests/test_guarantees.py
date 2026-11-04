@@ -605,6 +605,34 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
             self.assertNotContains(response, secret)
         self.assertEqual(self.client.get(reverse('version', args=[version.work_id, 2])).status_code, 404)
 
+    def test_older_version_notice_tracks_only_published_corrections_and_respects_withdrawal(self):
+        _, first = self.published()
+        exact_export = self.client.get(reverse('export_version', args=[first.work_id, 1])).json()
+        notice = 'A newer version is available.'
+        for number in (2, 3):
+            correction = self.draft(work_id=first.work_id)
+            services.save_submission(self.author, correction.pk,
+                content(title=f'SYNTHETIC correction {number}', change_note=f'Synthetic correction {number}.'),
+                correction.revision, submit=True)
+            if number == 2:
+                self.assertNotContains(self.client.get(reverse('version', args=[first.work_id, 1])), notice)
+            correction.refresh_from_db()
+            services.decide(self.moderator, correction.pk, 'publish', 'Synthetic correction moderation.',
+                correction.revision, conflicts='None; synthetic fixture')
+            for older_number in range(1, number):
+                older = self.client.get(reverse('version', args=[first.work_id, older_number]))
+                self.assertContains(older, notice)
+                latest_url = reverse('version', args=[first.work_id, number])
+                self.assertContains(older, f'<a href="{latest_url}">Read version {number}</a>', html=True)
+            self.assertNotContains(self.client.get(reverse('version', args=[first.work_id, number])), notice)
+            self.assertEqual(self.client.get(reverse('export_version', args=[first.work_id, 1])).json(), exact_export)
+        services.withdraw(self.author, first.work_id, 'Synthetic all-version withdrawal.')
+        for number in (1, 2, 3):
+            tombstone = self.client.get(reverse('version', args=[first.work_id, number]))
+            self.assertContains(tombstone, 'This research has been withdrawn.')
+            self.assertNotContains(tombstone, notice)
+            self.assertNotContains(tombstone, 'SYNTHETIC correction')
+
     def test_withdrawn_body_absent_from_latest_versions_search_and_export(self):
         sentinel = 'SYNTHETIC-WITHDRAWN-PRIVATE-BODY-1efc0'
         _, first = self.published(data=content(abstract=sentinel, claims=sentinel))

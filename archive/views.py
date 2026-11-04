@@ -69,10 +69,12 @@ def version(request,work_id,number):
     row=get_object_or_404(Version.objects.select_related('work'),work_id=work_id,number=number)
     work=row.work
     versions=work.versions.order_by('number')
+    newer_version_number = None if work.withdrawn_at else versions.filter(number__gt=row.number).aggregate(number=Max('number'))['number']
     # Tombstone context contains zero manuscript text, even for earlier versions.
     if work.withdrawn_at:
         row.snapshot={}
     return render(request,'archive/version.html',{'version':row,'work':work,'versions':versions,
+        'newer_version_number':newer_version_number,
         'is_author':request.user.is_authenticated and request.user.id==work.author_id,
         'citation':request.build_absolute_uri(reverse('version',args=[work.id,row.number]))})
 
