@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": false
+  },
   "framework": "django",
   "installCommand": "python -m pip install --require-hashes -r requirements.txt",
   "functions": {
