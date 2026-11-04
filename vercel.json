@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "django",
+  "installCommand": "python -m pip install --require-hashes -r requirements.txt",
+  "functions": {
+    "config/wsgi.py": {
+      "maxDuration": 30,
+      "excludeFiles": "{archive/tests/**,docs/**,deploy/**,.github/**,var/**,.env*,.venv/**,staticfiles/**}"
+    }
+  }
+}
