@@ -139,13 +139,21 @@ def login_view(request):
 
 @require_POST
 def start(request):
+    return begin_login(request, request.POST.get('next', '/workspace/'))
+
+
+@require_GET
+def initiate(request):
+    """AuthKit's externally initiated flow must redirect without another button click."""
+    return begin_login(request, request.GET.get('next', '/workspace/'))
+
+
+def begin_login(request, next_path):
     if settings.AUTH_PROVIDER != 'workos':
         raise Http404()
     if request.user.is_authenticated:
         return redirect('dashboard')
     nonce = request.session.get(BROWSER_NONCE) or secrets.token_urlsafe(32)
-    request.session[BROWSER_NONCE] = nonce
-    request.session.cycle_key()
     state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(64)
     browser_hash = hashlib.sha256(nonce.encode()).hexdigest()
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
@@ -156,8 +164,10 @@ def start(request):
         if WorkOSLoginAttempt.objects.count() >= 1000:
             return HttpResponse('Sign-in is busy. Retry in five minutes.', status=429, headers={'Retry-After': '300'})
         WorkOSLoginAttempt.objects.create(state_hash=hashlib.sha256(state.encode()).hexdigest(),
-            browser_hash=browser_hash, verifier=verifier, next_path=safe_next(request.POST.get('next', '/workspace/')),
+            browser_hash=browser_hash, verifier=verifier, next_path=safe_next(next_path),
             expires_at=timezone.now() + timedelta(minutes=5))
+    request.session[BROWSER_NONCE] = nonce
+    request.session.cycle_key()
     try:
         url = client().user_management.get_authorization_url(provider='authkit',
             redirect_uri=settings.WORKOS_REDIRECT_URI, state=state,

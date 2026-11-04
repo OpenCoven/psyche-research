@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client, TestCase, SimpleTestCase, override_settings
@@ -252,6 +253,34 @@ class WorkOSAuthenticationTests(TestCase):
         for value in ['//[', '//attacker.invalid/path', '/\\attacker.invalid', 'https://attacker.invalid', '/\nattacker']:
             self.assertEqual(auth.safe_next(value), '/workspace/')
         self.assertEqual(auth.safe_next('/workspace/?page=2'), '/workspace/?page=2')
+
+    def test_external_initiation_starts_sdk_flow_without_button_and_completes_callback(self):
+        response = self.client.get('/accounts/workos/initiate/', {'next':'//attacker.invalid'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(urlsplit(response['Location']).hostname, 'api.workos.com')
+        query = parse_qs(urlsplit(response['Location']).query)
+        self.assertEqual(query['provider'], ['authkit'])
+        self.assertEqual(query['redirect_uri'], [SYNTHETIC_SETTINGS['WORKOS_REDIRECT_URI']])
+        self.assertEqual(self.finish(query['state'][0])['Location'], '/workspace/')
+
+    def test_external_initiation_is_rate_limited_and_replaces_only_own_pending_state(self):
+        for _ in range(10):
+            self.assertEqual(self.client.get('/accounts/workos/initiate/').status_code, 302)
+        self.assertEqual(self.client.get('/accounts/workos/initiate/').status_code, 429)
+        self.assertEqual(WorkOSLoginAttempt.objects.count(), 1)
+
+    def test_full_login_capacity_rejects_new_browser_without_creating_session(self):
+        WorkOSLoginAttempt.objects.bulk_create([
+            WorkOSLoginAttempt(state_hash=f'synthetic-state-{i}', browser_hash=f'synthetic-browser-{i}',
+                verifier='synthetic-verifier', expires_at=timezone.now() + timedelta(minutes=5))
+            for i in range(1000)
+        ])
+        response = self.client.get('/accounts/workos/initiate/')
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(WorkOSLoginAttempt.objects.count(), 1000)
+        self.assertEqual(Session.objects.count(), 0)
+        self.assertNotIn('sessionid', response.cookies)
+        self.api.user_management.get_authorization_url.assert_not_called()
 
     def test_expired_wrong_client_token_is_not_refreshed(self):
         self.sign_in()

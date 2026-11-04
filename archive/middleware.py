@@ -59,7 +59,9 @@ class WriteLimitMiddleware:
     def __call__(self,request):
         return self.get_response(request)
     def process_view(self,request,view_func,view_args,view_kwargs):
-        if request.method != 'POST':
+        external_login = (settings.AUTH_PROVIDER == 'workos' and request.method == 'GET'
+                          and request.path == '/accounts/workos/initiate/')
+        if request.method != 'POST' and not external_login:
             return None
         now=timezone.now()
         # Never trust user-supplied X-Forwarded-For. A deployment proxy needs explicit separate review.

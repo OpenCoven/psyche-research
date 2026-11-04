@@ -1,12 +1,12 @@
 # WorkOS login and project setup
 
-The user selected WorkOS for login and requested project creation on 2026-11-04. The Django integration is implemented on `feat/workos-login` in the isolated `psyche-research-workos` checkout; its base is the tested staging-documentation tree. The shared checkout's Psyche Research branding edits belong to another task and are untouched. Provider account authorization and real project creation remain pending. No fake client ID, API key or project is configured as working authentication.
+The user selected WorkOS for login and requested project creation on 2026-11-04, then completed account sign-in. The Django integration is implemented on `feat/workos-login` in the isolated `psyche-research-workos` checkout; its base is the tested staging-documentation tree. The shared checkout's Psyche Research branding edits belong to another task and are untouched. The real Psyche Research staging project now exists in the authenticated account, with its local callback, initiation and sign-out destinations verified. Its server key has not been copied into the application, so real provider login remains pending.
 
 ## Login contract
 
 Set `AUTH_PROVIDER=workos` to select AuthKit. In that mode the sign-in page contains one ordinary HTML form that starts WorkOS authentication; local password login and local password-change routes are unavailable. An incomplete configuration fails at startup rather than falling back to passwords. `AUTH_PROVIDER=local` preserves the existing local-development/operator-provisioned path; it is the default until real WorkOS configuration is supplied. Choosing a provider does not open intake or set `PILOT_APPROVED`.
 
-The flow uses the official Python SDK 10.6.0, hash-pinned with its full transitive closure. A CSRF-protected POST creates a five-minute server-side state and PKCE verifier, stores only a random browser nonce in the Django session and redirects to the fixed WorkOS API origin. Pending attempts are bounded to 1,000 globally and one per browser nonce, with existing persistent anonymous rate limits. The callback locks and deletes the matching state before exchanging the authorization code, passes the verifier and disables automatic exchange retries. Replayed, expired, duplicate-parameter and other-browser callbacks do not reach the exchange endpoint.
+The flow uses the official Python SDK 10.6.0, hash-pinned with its full transitive closure. A CSRF-protected POST creates a five-minute server-side state and PKCE verifier, stores only a random browser nonce in the Django session and redirects to the fixed WorkOS API origin. The GET `/accounts/workos/initiate/` endpoint starts the same SDK-backed flow immediately for externally initiated AuthKit sign-in, without another button click. Both entry points have persistent rate limits. Pending attempts are bounded to 1,000 globally and one per browser nonce; capacity rejection occurs before creating a browser session. The callback locks and deletes the matching state before exchanging the authorization code, passes the verifier and disables automatic exchange retries. Replayed, expired, duplicate-parameter and other-browser callbacks do not reach the exchange endpoint.
 
 The application verifies RS256 signatures against the configured client's HTTPS WorkOS JWKS, exact configured issuer, expiry, issued-at, subject, session ID and client ID. An explicit audience must match this client; ordinary first-party WorkOS session tokens can omit it. Impersonation and unverified email identities are rejected. The immutable provider subject and client ID must match an explicitly enabled `WorkOSIdentity` linked to an existing active local account. Email addresses, external roles and permissions cannot choose or create a local account or grant moderator access. A successful sign-in rotates the Django session key; a disabled binding or deactivated local account loses access on its next request.
 
@@ -30,22 +30,34 @@ The API base URL and JWKS origin are fixed to `https://api.workos.com`; an ambie
 
 See the [WorkOS Python guide](https://workos.com/docs/authkit/vanilla/python), [official Python SDK](https://github.com/workos/workos-python), [session token reference](https://workos.com/docs/reference/authkit/session-tokens) and [token validation guidance](https://workos.com/blog/verify-workos-access-tokens-in-your-own-api), checked 2026-11-04. The pinned installed SDK's sealing API requires a Fernet key even though some general framework examples describe an arbitrary cookie password. Tests exercise the pinned implementation and real RSA signatures.
 
-## Create the project in the user's account
+## Verified staging project
 
-The official WorkOS CLI 0.24.0 is available through npm. `auth status` returned `authenticated:false`. An attempted dashboard-device login produced a user authorization request and then ended with `expired_token`; its code is no longer valid. No dashboard session, new WorkOS project/environment, provider user, API key, paid subscription or external message was created. The browser automation host also remained unavailable. The user must complete a fresh account sign-in before the agent can operate the account.
+After the earlier device authorization expired, the user completed account sign-in. Official CLI 0.24.0 `whoami` verified team `Val` (`team_01JSV5TKHJECJTSRMFSF04AEQC`) and organization `org_01JSV5TKEPBHV5WA9Q1ZKFMJ7N`. Project listing found no Psyche project. A single `project create 'Psyche Research' --no-production --yes --json` created this staging-only project, then project listing, environment-scoped `whoami` and the signed-in dashboard independently read back its identifiers. The existing SlopOS CLI profile and its credentials were not repointed or reused.
 
-Use these commands without `--insecure-storage`; retain the system keyring. The team must be identified from the authenticated account before a write. These are the next actions, not commands already completed:
+| Resource | Verified value |
+| --- | --- |
+| Project | `project_01M6KVC1HJRRSX2H4WZQ86KM10`, Psyche Research |
+| Staging environment | `environment_01M6KVC1JEV7TSP86SZ6ZZJ7MF`, sandbox; no production environment |
+| Default application | `app_01M6KVC22RHQBPBRA217AWPKC6`, dashboard default name Val's Application |
+| Client ID | `client_01M6KVC1Y1QA30MA8F86ADXQ7W` |
+| AuthKit domain | `sure-tranquility-41-staging.authkit.app` |
+| Default callback | `http://127.0.0.1:8011/accounts/workos/callback/` |
+| Initiate login URI | `http://127.0.0.1:8011/accounts/workos/initiate/` |
+| Default sign-out return | `http://127.0.0.1:8011/` |
+
+The CLI reported both URI lists empty before mutation. Each replacement list was dry-run first, applied with the exact environment ID, then read back. The initiation setting is not exposed by this CLI version or its REST catalog; it was saved through the signed-in dashboard and reopened to verify the exact value. No CORS entry is needed for this server-rendered redirect flow. The project's automatically available server key remains masked and has not been copied, rotated or used by this application. No provider user, paid plan, invitation, agreement, role grant or production resource was created by this continuation.
+
+These are read-only resumption commands; do not create the project again. Retain the system keyring and use explicit environment scoping:
 
 ```sh
-npx workos@0.24.0 --mode agent auth login
-npx workos@0.24.0 whoami
-npx workos@0.24.0 project list
-npx workos@0.24.0 --mode agent project create 'Psyche Research' --no-production --yes
+WORKOS_MODE=agent npx workos@0.24.0 whoami --environment-id environment_01M6KVC1JEV7TSP86SZ6ZZJ7MF --json
+WORKOS_MODE=agent npx workos@0.24.0 authkit redirect-uris list --environment-id environment_01M6KVC1JEV7TSP86SZ6ZZJ7MF --json
+WORKOS_MODE=agent npx workos@0.24.0 authkit logout-uris list --environment-id environment_01M6KVC1JEV7TSP86SZ6ZZJ7MF --json
 ```
 
-List existing projects first and reuse a matching project owned by the intended team; do not retry an ambiguous create response. CLI `project create` defaults to creating production as well, so `--no-production` is deliberate. The current request authorizes the login/project setup; it does not select a paid plan, accept a new legal agreement, grant unrelated account access or launch the archive. Stop for the applicable user action if those appear. Record the actual project/environment/application IDs and read them back before configuring credentials or callbacks. See [WorkOS projects](https://workos.com/docs/authkit/projects) and [CLI documentation](https://workos.com/docs/authkit/cli-installer).
+The first local receipt writer failed after creation returned because `Path.open` does not support `opener`; creation was not retried. A read-only list recovered the exact project identity before further changes. The writer now uses exclusive mode-0600 files in an ignored mode-0700 directory and redacts credential fields before displaying output. Private raw receipts remain under `var/workos-account/`; their non-secret results and this first failure are recorded in [the implementation evidence](evidence/WORKOS_IMPLEMENTATION.md). See [WorkOS projects](https://workos.com/docs/authkit/projects) and [CLI documentation](https://workos.com/docs/authkit/cli-installer).
 
-Configure only the selected staging application's exact callback, an Initiate login URI at `/accounts/login/`, and an exact sign-out return URI at the application root. Keep public signup unavailable while pilot admission remains operator-controlled; no invitations or real users are needed to create the project. Configure local loopback callbacks only on staging. Keep production secrets and private participant records out of previews and this rehearsal. Actual hosted hostnames must come from the selected Vercel project before registering them; no domain or project ID has been invented.
+Next, transfer the selected staging server key privately into the approved local runtime, verify the exact token issuer, and exercise real sign-in/sign-out before claiming provider acceptance. WorkOS account creation still cannot enroll someone into the archive: only an explicitly enabled local identity binding permits entry. Keep loopback callbacks on staging and keep production secrets and private participant records out of this rehearsal. Actual hosted hostnames must come from the selected Vercel project before registering them; no hosted domain or project ID has been invented. Preserve existing URI lists when adding that host, and do not replace a default or remove an entry without its applicable authorization.
 
 The Vercel integration was offered because it exposes project creation, but installation/connection has not been confirmed. No Vercel project was created or linked. After access is available, inspect the current account/team and existing projects, create or reuse `psyche-research-staging` in the intended team, verify protection on all deployment URLs, then apply the real environment-specific configuration. Database provider/region/cost and actual deployment remain separate unresolved staging requirements in STAGING_ACCEPTANCE.md.
 
