@@ -9,6 +9,21 @@ from django.test import SimpleTestCase
 ROOT=Path(__file__).resolve().parents[2]
 
 class OperationalDrill(SimpleTestCase):
+    def test_workos_callback_consumption_commits_before_provider_exchange(self):
+        with tempfile.TemporaryDirectory(prefix='psyche-callback-commit-') as directory:
+            env = {**os.environ, 'LOCAL_DEVELOPMENT': '1', 'DJANGO_SETTINGS_MODULE': 'config.settings',
+                   'DATABASE_PATH': str(Path(directory) / 'synthetic.sqlite3')}
+            env.pop('DATABASE_URL', None)
+            self.run_python('''
+import django
+django.setup()
+from django.core.management import call_command
+call_command('migrate', verbosity=0)
+from archive.tests.session_overlap_fixture import run_callback_commit_boundary
+run_callback_commit_boundary()
+print('Callback state was durably consumed before provider exchange')
+''', env)
+
     def test_overlapping_workos_requests_preserve_rotated_session_in_real_file_database(self):
         with tempfile.TemporaryDirectory(prefix='psyche-session-race-') as directory:
             env = {**os.environ, 'LOCAL_DEVELOPMENT': '1', 'DJANGO_SETTINGS_MODULE': 'config.settings',

@@ -140,10 +140,21 @@ token = jwt.encode({'iss':SYNTHETIC_SETTINGS['WORKOS_ISSUER'],'sub':'user_synthe
 response = SimpleNamespace(user=SimpleNamespace(id='user_synthetic',email_verified=True),
     access_token=token,refresh_token='synthetic-postgres-refresh',impersonator=None)
 real = WorkOSClient(api_key='sk_test_synthetic_only',client_id='client_synthetic')
+committed_attempt_counts = []
+def exchange_after_durable_consumption(**kwargs):
+    probe = db.copy(alias='synthetic-callback-commit-probe')
+    try:
+        with probe.cursor() as cursor:
+            cursor.execute('SELECT count(*) FROM archive_workosloginattempt')
+            committed_attempt_counts.append(cursor.fetchone()[0])
+        assert committed_attempt_counts[-1] == 0, 'Callback state must be durably consumed before provider exchange'
+    finally:
+        probe.close()
+    return response
 with override_settings(**SYNTHETIC_SETTINGS), patch('archive.workos_auth.client') as factory, patch('archive.workos_auth.jwks') as keys:
     api = factory.return_value
     api.user_management.get_authorization_url.side_effect = real.user_management.get_authorization_url
-    api.user_management.authenticate_with_code.return_value = response
+    api.user_management.authenticate_with_code.side_effect = exchange_after_durable_consumption
     keys.return_value.get_signing_key_from_jwt.return_value = SimpleNamespace(key=key.public_key())
     browser = Client()
     started = browser.post('/accounts/workos/start/',urlencode({'next':'/workspace/'}),content_type='application/x-www-form-urlencoded')
@@ -162,6 +173,7 @@ with override_settings(**SYNTHETIC_SETTINGS), patch('archive.workos_auth.client'
         outcomes = list(pool.map(lambda _:callback_once(),range(2)))
     assert sorted(outcomes)==[302,400], outcomes
     assert api.user_management.authenticate_with_code.call_count==1
+    assert committed_attempt_counts==[0], committed_attempt_counts
     assert WorkOSLoginAttempt.objects.count()==0
 ''')
 

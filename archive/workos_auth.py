@@ -186,7 +186,7 @@ def callback(request):
     if (len(request.GET.getlist('state')) != 1 or len(request.GET.getlist('code')) != 1
         or not state or len(state) > 256 or not code or len(code) > 4096 or not nonce or request.GET.get('error')):
         return HttpResponse('Sign-in could not be completed. Start again from the sign-in page.', status=400)
-    with transaction.atomic():
+    with transaction.atomic(durable=True):
         attempt = WorkOSLoginAttempt.objects.select_for_update().filter(
             state_hash=hashlib.sha256(state.encode()).hexdigest(),
             browser_hash=hashlib.sha256(nonce.encode()).hexdigest(), expires_at__gt=timezone.now()).first()

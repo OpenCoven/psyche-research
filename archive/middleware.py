@@ -16,13 +16,18 @@ from .models import RateBucket
 
 
 class WorkOSDatabaseSessionMiddleware(SessionMiddleware):
-    """Serialize session loading, token rotation and response saving across workers."""
+    """Serialize authenticated session loading, token rotation and response saving."""
 
     def __call__(self, request):
         key = request.COOKIES.get(settings.SESSION_COOKIE_NAME, '')
         if settings.AUTH_PROVIDER != 'workos' or not key or len(key) > 40:
             return super().__call__(request)
         try:
+            existing = Session.objects.filter(session_key=key).first()
+            if not existing or not existing.get_decoded().get('_auth_user_id'):
+                # Anonymous OAuth sessions need the callback's consume transaction
+                # to commit before its external, non-retryable code exchange.
+                return super().__call__(request)
             with transaction.atomic():
                 # Lock before SessionMiddleware loads its cache. Keep the lock until
                 # process_response saves, so an older response cannot restore old tokens.
