@@ -10,11 +10,13 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import Client, TestCase, SimpleTestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, SimpleTestCase, override_settings
+from django.http import HttpResponse
 from django.utils import timezone
 from workos import WorkOSClient
 from workos.session import seal_session_from_auth_response, unseal_data
@@ -248,6 +250,67 @@ class WorkOSAuthenticationTests(TestCase):
         session.save()
         self.assertEqual(self.client.get('/workspace/').status_code, 302)
         self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_overlapping_requests_do_not_reuse_a_consumed_refresh_token(self):
+        """Two tabs can load the same expired session before either response saves it."""
+        from django.contrib.sessions.backends.db import SessionStore
+
+        self.sign_in()
+        stored = self.client.session
+        stored[auth.SESSION_DATA] = seal_session_from_auth_response(
+            access_token=self.token(exp=int(time.time()) - 1),
+            refresh_token='synthetic-once-only-refresh',
+            user={'id': 'user_synthetic', 'email_verified': True},
+            cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
+        stored.save()
+        refreshed = seal_session_from_auth_response(
+            access_token=self.token(), refresh_token='synthetic-replacement-refresh',
+            user={'id': 'user_synthetic', 'email_verified': True},
+            cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
+        refresh = self.api.user_management.load_sealed_session.return_value.refresh
+        refresh.side_effect = [SimpleNamespace(authenticated=True, sealed_session=refreshed),
+                               SimpleNamespace(authenticated=False)]
+        requests = []
+        for _ in range(2):
+            request = RequestFactory().get('/workspace/')
+            request.session = SessionStore(session_key=stored.session_key)
+            dict(request.session.items())  # Both requests already cached the old token.
+            request.user = self.author
+            request.COOKIES['sessionid'] = stored.session_key
+            requests.append(request)
+        middleware = auth.WorkOSSessionMiddleware(lambda request: HttpResponse(status=200))
+        from django.utils.module_loading import import_string
+        middleware = import_string(settings.MIDDLEWARE[2])(middleware)
+        for request in requests:
+            self.assertEqual(middleware(request).status_code, 200)
+        self.assertEqual(refresh.call_count, 1)
+        self.assertTrue(Session.objects.filter(session_key=stored.session_key).exists())
+        self.assertIn('_auth_user_id', requests[1].session)
+
+    def test_refresh_survives_a_later_server_error_without_reusing_old_token(self):
+        self.sign_in()
+        session = self.client.session
+        session[auth.SESSION_DATA] = seal_session_from_auth_response(
+            access_token=self.token(exp=int(time.time()) - 1), refresh_token='synthetic-old-refresh',
+            user={'id': 'user_synthetic', 'email_verified': True},
+            cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
+        session.save()
+        refreshed = seal_session_from_auth_response(
+            access_token=self.token(), refresh_token='synthetic-new-refresh',
+            user={'id': 'user_synthetic', 'email_verified': True},
+            cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
+        refresh = self.api.user_management.load_sealed_session.return_value.refresh
+        refresh.return_value = SimpleNamespace(authenticated=True, sealed_session=refreshed)
+        # Use the real middleware around a failing view, including response saving.
+        from archive.middleware import WorkOSDatabaseSessionMiddleware
+        request = RequestFactory().get('/workspace/')
+        request.COOKIES['sessionid'] = session.session_key
+        request.user = self.author
+        middleware = WorkOSDatabaseSessionMiddleware(
+            auth.WorkOSSessionMiddleware(lambda request: HttpResponse(status=500)))
+        self.assertEqual(middleware(request).status_code, 500)
+        self.assertEqual(self.client.get('/workspace/').status_code, 200)
+        self.assertEqual(refresh.call_count, 1)
 
     def test_malformed_return_paths_cannot_escape_or_crash_the_login_page(self):
         for value in ['//[', '//attacker.invalid/path', '/\\attacker.invalid', 'https://attacker.invalid', '/\nattacker']:

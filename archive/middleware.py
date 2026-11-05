@@ -7,10 +7,30 @@ import uuid
 from datetime import timedelta
 from django.conf import settings
 from django.db import transaction, OperationalError
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.contrib.sessions.models import Session
 from django.http import HttpResponse
 from django.core.exceptions import RequestDataTooBig, TooManyFieldsSent
 from django.utils import timezone
 from .models import RateBucket
+
+
+class WorkOSDatabaseSessionMiddleware(SessionMiddleware):
+    """Serialize session loading, token rotation and response saving across workers."""
+
+    def __call__(self, request):
+        key = request.COOKIES.get(settings.SESSION_COOKIE_NAME, '')
+        if settings.AUTH_PROVIDER != 'workos' or not key or len(key) > 40:
+            return super().__call__(request)
+        try:
+            with transaction.atomic():
+                # Lock before SessionMiddleware loads its cache. Keep the lock until
+                # process_response saves, so an older response cannot restore old tokens.
+                Session.objects.select_for_update().filter(session_key=key).first()
+                return super().__call__(request)
+        except OperationalError:
+            return HttpResponse('Sign-in is temporarily busy. Retry shortly; reload to confirm whether your change was saved.',
+                                status=503, headers={'Retry-After': '5'})
 
 class BoundaryMiddleware:
     def __init__(self,get_response):

@@ -257,6 +257,10 @@ class WorkOSSessionMiddleware:
                         raise InvalidLogin()
                     if sealed != request.session.get(SESSION_DATA):
                         request.session[SESSION_DATA] = sealed
+                        # Persist rotation even if a later view returns an HTTP 500,
+                        # for which Django ordinarily skips session response saving.
+                        request.session[SESSION_ID] = claims['sid']
+                        request.session.save()
                     request.session[SESSION_ID] = claims['sid']
                 except (InvalidLogin, jwt.InvalidTokenError, ValueError, KeyError, TypeError):
                     logout(request)

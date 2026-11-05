@@ -1,5 +1,11 @@
 # Coven Research status and resumption record
 
+## Current protected-staging qualification continuation
+
+The 2026-11-04 qualification continuation owns only branch `chore/staging-qualification-20261104` in the isolated `psyche-research-qualification` worktree, based on unpublished deployment-guard commit dc06c0c. [The current qualification receipt](evidence/STAGING_QUALIFICATION_20261104.md) supersedes older next-action statements below for this continuation. A review-discovered one-use WorkOS refresh race is repaired locally: the real-file concurrent drill passes, and the full suite passes 108 tests in 27.849 seconds with eight explicit PostgreSQL skips (100 executed). No schema change was added. New-head PostgreSQL/CI and independent review of the repair remain open. The existing PR stack, branding edits and their worktrees are untouched. No source push, merge, deployment, new credentials or real intake occurred.
+
+Fresh browser inventory still fails native startup and reports the browser host unavailable. A fresh Vercel read exits 1 with fetch failed; earlier verified project discovery remains scoped historical evidence. The consolidated non-secret project/provider/recovery/operator/contact/audience/window/cap questions are pending. Resolve them before a concrete staging authorization request. The full staging/recovery/founder-decision goal remains active and incomplete; pilot remains NO-GO.
+
 Updated 2026-11-04. **Pilot NO-GO.** The user selected Vercel, with managed PostgreSQL required for durable hosted data. [PR #12](https://github.com/OpenCoven/psyche-research/pull/12) is merged; live main is d218b6bd2e72388fe00d928f465804c65e6ea306, tree c939a6cdcb9f3752f05ca1230da07bf19d38fb7c. Source integration was separately authorized and is complete. No Vercel project/domain, provider/region, monitored operator contact, spending cap, policy adoption, hosted persistent credentials, deployment or outreach has been authorized. The separately approved local WorkOS credential store is scoped below. Refresh live source/checks before using this checkpoint.
 
 ## Verified checkpoint and current work

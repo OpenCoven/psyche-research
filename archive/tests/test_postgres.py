@@ -624,6 +624,12 @@ finally:
 verify_good()
 ''')
 
+    def test_live_overlapping_workos_requests_preserve_rotated_session(self):
+        self.run_in_disposable_schema('''
+from archive.tests.session_overlap_fixture import run_session_overlap
+run_session_overlap()
+''')
+
     def test_live_existing_publication_survives_upgrade_reverse_and_trigger_reinstallation(self):
         self.run_in_disposable_schema('''
 import hashlib
