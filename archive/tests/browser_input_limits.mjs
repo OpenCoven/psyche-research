@@ -19,6 +19,7 @@ const browser = spawn(binary, ['--headless=new', '--disable-background-networkin
 let browserLog = '';
 browser.stderr.on('data', bytes => { browserLog = (browserLog + bytes).slice(-16000); });
 let socket;
+let closeBrowser;
 let probeFailed = false;
 try {
   const activePort = path.join(profile, 'DevToolsActivePort');
@@ -43,6 +44,7 @@ try {
     pending.set(id, {resolve, reject, timer});
     socket.send(JSON.stringify({id, method, params}));
   });
+  closeBrowser = () => call('Browser.close');
   socket.addEventListener('message', event => {
     const message = JSON.parse(event.data);
     if (message.id) {
@@ -99,11 +101,11 @@ try {
       rect.left >= 0 && rect.right <= innerWidth && style.outlineStyle !== 'none' &&
       parseFloat(style.outlineWidth) >= 2 && style.outlineColor !== 'rgba(0, 0, 0, 0)';
   }.toString() + ')()');
-  const tabTo = async selector => {
+  const tabTo = async (selector, modifiers = 0) => {
     for (let attempt = 0; ; attempt++) {
       if (await evaluate('document.activeElement.matches(' + JSON.stringify(selector) + ')')) return;
       assert.ok(attempt < 80, 'Keyboard could not reach ' + selector);
-      await key('Tab');
+      await key('Tab', modifiers);
     }
   };
   const reflow = [];
@@ -123,9 +125,15 @@ try {
         assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + pathname + ' at ' + width);
         assert.equal(geometry.main, 1, 'One main landmark is required');
         assert.equal(geometry.headings, 1, 'One page heading is required');
-        await key('Tab');
+        // Django's local login intentionally autofocuses username. Reach the first
+        // link by native reverse Tab there; other pages must start with the skip link.
+        if (await evaluate('document.activeElement.matches("[autofocus]")')) {
+          await tabTo('.skip-link', 1);
+        } else {
+          await key('Tab');
+        }
         const focused = await evaluate('({skip: document.activeElement.classList.contains("skip-link"), id: document.activeElement.id, tag: document.activeElement.tagName, pageFocused: document.hasFocus()})');
-        assert.equal(focused.skip, true, 'First Tab must reach the skip link: ' +
+        assert.equal(focused.skip, true, 'Keyboard must reach the skip link: ' +
           JSON.stringify({path: pathname, width, ...focused}));
         assert.equal(await focusVisible(), true, 'Skip-link focus must be visible in the viewport');
         await key('Enter');
@@ -220,6 +228,12 @@ try {
   console.error('[browser-contract] primary failure:', error);
   throw error;
 } finally {
+  // Let Chrome close its child processes before removing the temporary profile.
+  if (closeBrowser && browser.exitCode === null && browser.signalCode === null) {
+    try { await closeBrowser(); } catch (error) {
+      console.error('[browser-contract] graceful shutdown failed:', error.message);
+    }
+  }
   if (socket) socket.close();
   browser.kill('SIGTERM');
   await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
