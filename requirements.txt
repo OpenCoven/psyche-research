@@ -1,5 +1,5 @@
-# Django 5.2 LTS, patched release verified against the official download page 2026-11-04.
-Django==5.2.19 --hash=sha256:5965d974a5218a2b68a11dd1276434707f23886525c23f0598eccedaf4f4ca00
+# Django pin follows main's merged dependency update #14 (2026-11-06).
+Django==6.1.2 --hash=sha256:141efee6ec64d1db6db90683bf734c550102450f444fb099063b0be1bd27d991 --hash=sha256:a1e92451ccb8b514e91bbb3b6d186d20b4030558f116b5d9de6535455ff210b7
 asgiref==3.13.0 --hash=sha256:034cc8cbf72d00553b4be256703ac545120b4e50af13b49dec99da899aeeecb4 --hash=sha256:f9596a2434512686473d50f96ff6207fbba49ae1a785dfac614df4aeb085674d
 sqlparse==0.5.5 --hash=sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba
 gunicorn==26.2.0 --hash=sha256:bd249d0b3f7972f7432f0a6b6ff3b3ee2d129f70cd1ff6c09a9dd9e29a2b88e3
