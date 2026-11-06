@@ -1,4 +1,4 @@
-# Coven Research: bounded pilot and onboarding drafts
+# Psyche Research: bounded pilot and onboarding drafts
 
 Status: proposed pilot plan and copy, recorded 2026-11-04. Current decision is **NO-GO for invitations, real submissions, deployment, and public launch** until the gates below are evidenced and an accountable founder explicitly authorizes the concrete pilot. Drafting this plan does not send invitations, create participants, approve policies, provision hosting, or claim the service is live.
 
@@ -72,7 +72,7 @@ Week 4 stops new pilot intake, resolves or clearly hands off pending submissions
 
 ## Contributor onboarding draft
 
-Welcome to Coven Research, a proposed small archive for practical research on AI systems and agents. You can contribute without an institutional affiliation, a popular repository, or a payment. We are testing whether clear accounts of experiments, replications, negative results, tools, datasets, and carefully labeled ideas help other people do better work.
+Welcome to Psyche Research, a proposed small archive for practical research on AI systems and agents. You can contribute without an institutional affiliation, a popular repository, or a payment. We are testing whether clear accounts of experiments, replications, negative results, tools, datasets, and carefully labeled ideas help other people do better work.
 
 Start with a concrete question and the work you already have. Save a draft with a working title and summary, then add who did the work, how it was done, what happened or what you claim, what remains uncertain, and where the relevant artifacts and exact versions can be found. Cite related work, record provenance and licenses, and disclose how AI assistance was used and checked. A linked method is fine when the note still explains what a reader needs to understand the claim.
 
@@ -108,13 +108,13 @@ Before publication, explicitly consent to the precise review text, public identi
 
 **Can I use AI assistance?** Yes, with an honest description of where it was used and how you checked the work. An AI tool cannot act as an independent human reviewer, author, moderator, or appeal decision maker. The archive path does not require an LLM.
 
-**Will Coven store or run my software and datasets?** The first release links to artifacts and records their versions. It does not accept arbitrary file deposits, run submitted code, or guarantee third-party preservation. Use a suitable durable repository where appropriate.
+**Will Psyche store or run my software and datasets?** The first release links to artifacts and records their versions. It does not accept arbitrary file deposits, run submitted code, or guarantee third-party preservation. Use a suitable durable repository where appropriate.
 
 **Will my draft be public?** It must remain private until an explicit human publication decision. Private intake is distinct from a published external archive record; do not link confidential material merely because a form field accepts a URL.
 
 **Can I correct or withdraw work?** The intended workflow is a new moderated version or a withdrawal tombstone with clear history. Public copies already downloaded or cached elsewhere may remain. Exact privacy and retention behavior must be approved and implemented before launch.
 
-**Do you mint DOIs or guarantee indexing?** No such capability or arrangement is verified. Stable version URLs and citation metadata are the first-release goal. You may link an existing DOI from a suitable artifact host without suggesting it certifies Coven's moderation.
+**Do you mint DOIs or guarantee indexing?** No such capability or arrangement is verified. Stable version URLs and citation metadata are the first-release goal. You may link an existing DOI from a suitable artifact host without suggesting it certifies Psyche's moderation.
 
 **Is a reputation score used?** No. Any future reputation study must be optional, isolated, disabled by default, and unable to affect admission, review access, ranking, visibility, priority, or moderation. It cannot measure scientific truth.
 
@@ -126,7 +126,7 @@ Before publication, explicitly consent to the precise review text, public identi
 
 **Practical AI work, recorded clearly.**
 
-Coven Research is being built as a small archive for useful accounts of AI experiments, replications, tools, datasets, negative results, and evidence-aware ideas. Start with the work you did, show the evidence you have, and say where it stops.
+Psyche Research is being built as a small archive for useful accounts of AI experiments, replications, tools, datasets, negative results, and evidence-aware ideas. Start with the work you did, show the evidence you have, and say where it stops.
 
 You do not need an institution, a popular repository, a following, or a payment to be eligible. Intake is bounded and human moderated for scope, completeness, rights, privacy, safety, and abuse. Publication is not scientific peer review or a guarantee that a claim is correct.
 
@@ -136,9 +136,9 @@ The goal is a readable, versioned research record that connects practical work t
 
 ## Invitation draft: do not send without authorization
 
-Subject: Invitation to a small Coven Research pilot
+Subject: Invitation to a small Psyche Research pilot
 
-I am preparing a small pilot for Coven Research, a versioned archive for practical work on AI systems and agents. I would value your help testing whether a short structured account makes an experiment, replication, tool, dataset, negative result, or carefully framed idea more useful to other people.
+I am preparing a small pilot for Psyche Research, a versioned archive for practical work on AI systems and agents. I would value your help testing whether a short structured account makes an experiment, replication, tool, dataset, negative result, or carefully framed idea more useful to other people.
 
 The proposed pilot runs for four weeks with at most ten participants and ten submissions. You can take part without an institution, a popular GitHub project, or a payment. A human moderator checks scope, completeness, rights, privacy, safety, and abuse; publication is not scientific peer review. Human reviews and vouches are not available in this first pilot.
 

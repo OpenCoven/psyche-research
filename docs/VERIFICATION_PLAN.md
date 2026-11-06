@@ -1,4 +1,4 @@
-# Coven Research verification plan
+# Psyche Research verification plan
 
 Status: independent acceptance design, 2026-11-04. These are required checks and evidence definitions, not test results. The project status must separately identify implemented, locally tested, hosted, reviewed, and human-accepted work.
 

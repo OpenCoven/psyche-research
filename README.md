@@ -1,4 +1,4 @@
-# Coven Research
+# Psyche Research
 
 A bounded research publication for practical work with AI systems: experiments, replications, negative results, tools, datasets and evidence-supported ideas. Eligibility does not depend on affiliation, popularity, GitHub or payment. Publication follows human moderation for scope, completeness, rights, privacy, safety and abuse; it is not scientific peer review.
 

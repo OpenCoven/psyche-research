@@ -1,4 +1,4 @@
-# Coven Research threat model
+# Psyche Research threat model
 
 Status: proposed pilot model, recorded 2026-11-04. This document is a review checklist, not a security certification. Implementation and test evidence belong in the project status and verification record; a control described here is not automatically implemented.
 

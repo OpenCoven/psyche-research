@@ -1,10 +1,10 @@
-# Coven Research: draft policies and governance
+# Psyche Research: draft policies and governance
 
 Status: proposals for founder and appropriate specialist review, recorded 2026-11-04. These drafts are not accepted legal terms or evidence of legal review. They must not be advertised as approved operating policies until an accountable operator adopts a dated version and verifies that the application and runbook can honor it. The core product invariants in the supplied brief remain binding implementation requirements.
 
 ## Purpose, eligibility, and scope
 
-Coven Research is intended to help people publish useful, evidence-aware accounts of practical work on AI systems, agents, tools, datasets, replications, and failures. Anyone may be eligible to submit under the same published scope and capacity rules. A university, employer, institutional address, established reputation, GitHub account, followers, stars, payment, or recommendation is not required. Eligibility does not guarantee acceptance, publication, review, or a response date.
+Psyche Research is intended to help people publish useful, evidence-aware accounts of practical work on AI systems, agents, tools, datasets, replications, and failures. Anyone may be eligible to submit under the same published scope and capacity rules. A university, employer, institutional address, established reputation, GitHub account, followers, stars, payment, or recommendation is not required. Eligibility does not guarantee acceptance, publication, review, or a response date.
 
 The initial scope is short structured experiments or field reports, replications and negative results, tool or dataset notes, and clearly labeled hypotheses. A complete note identifies its question in the abstract or methods, methods or linked methods, claims or results, limitations, artifacts where available (or an explanation in provenance), provenance, license, and AI assistance. A negative result is welcome when the tested conditions and limits are clear. A hypothesis is welcome when it identifies its evidence gap and proposed test instead of claiming a result.
 

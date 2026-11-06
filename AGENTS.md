@@ -1,4 +1,4 @@
-# Coven Research working instructions
+# Psyche Research working instructions
 
 Read docs/STATUS.md, docs/DECISIONS.md, the delivery epic and relevant issues, current git state and outstanding checks before each cycle. Keep the current tree and remote evidence authoritative; do not duplicate completed work or take over another owner's edits. The user selected Vercel; managed PostgreSQL is the hosted target and SQLite is local only.
 

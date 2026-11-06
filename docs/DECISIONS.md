@@ -1,4 +1,4 @@
-# Coven Research decisions
+# Psyche Research decisions
 
 Updated 2026-11-04. Engineering choices below are reversible implementation decisions under the task authorization. Policy/terms adoption, an accountable operator, hosting, new persistent production credentials, costs, outreach, deployment, and pilot opening remain human approval gates. No earlier archive charter or discussion was available in the repository or narrow neighboring documentation search; the attached task is the product charter.
 

@@ -1,4 +1,4 @@
-# Coven Research status and resumption record
+# Psyche Research status and resumption record
 
 ## Current protected-staging qualification continuation
 
