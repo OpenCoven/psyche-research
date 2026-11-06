@@ -1,5 +1,6 @@
 """Run the exact-source browser contract against a disposable synthetic database."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import socket
@@ -40,8 +41,26 @@ def main():
             available.bind(('127.0.0.1', 0))
             port = available.getsockname()[1]
         origin = f'http://127.0.0.1:{port}'
+        # Only a fixed synthetic-image/measurement allowlist is uploaded by CI.
+        # Session configuration, database and server logs stay in private scratch.
+        review_directory = ROOT / 'var/browser-review'
+        # Refuse stale bundles rather than mixing images from different executions.
+        review_directory.mkdir(parents=True, mode=0o700, exist_ok=False)
+        from archive.tests.browser_fonts import font_environment
+        source = {
+            'sha': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+            'tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], cwd=ROOT, text=True).strip(),
+            'dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)),
+            'font_environment': font_environment(),
+            'files': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in (
+                'static/archive/site.css', 'archive/tests/browser_input_limits.mjs',
+                'archive/tests/browser_review.mjs', 'archive/tests/run_browser_input_limits.py',
+                'archive/tests/browser_fonts.py',
+                '.github/workflows/verify.yml')},
+        }
         fixture = scratch / 'fixture.json'
         fixture.write_text(json.dumps({'origin': origin, 'editor': f'/workspace/{submission.pk}/',
+            'review_directory': str(review_directory), 'source': source,
             'cookie': {'name': 'sessionid', 'value': client.cookies['sessionid'].value}}))
         fixture.chmod(0o600)
         with (scratch / 'server.log').open('w') as log:
@@ -88,6 +107,11 @@ def main():
                 for name in ('title', 'byline', 'abstract', 'claims', 'limitations', 'provenance', 'ai_disclosure', 'change_note'):
                     assert len(getattr(submission, name)) == Submission._meta.get_field(name).max_length
                 assert not Capacity.objects.get(pk=1).intake_open and not Version.objects.exists()
+                report_path = review_directory / 'report.json'
+                report = json.loads(report_path.read_text())
+                report['server_verified'] = True
+                report['server_postcondition'] = {'revision': 2, 'intake': 'paused', 'public_versions': 0}
+                report_path.write_text(json.dumps(report, indent=2) + '\n')
                 print(json.dumps({'server_revision': 2, 'all_field_limits_saved': True,
                     'stored_newlines': 'LF', 'intake': 'paused', 'public_versions': 0}))
             finally:
