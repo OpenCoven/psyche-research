@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "source": {
+    "sha": "d39e8973f32df4ca76651c22609b2d513c2b4a9e",
+    "tree": "42b0f8452e0d96d7d29ff7997b3c23a14f4b8eef",
+    "dirty": false,
+    "font_environment": {
+      "available_faces": [
+        {
+          "codepoint": "U+754C",
+          "available_family": "Noto Sans CJK JP",
+          "file": "NotoSansCJK-Regular.ttc",
+          "glyph_available": true
+        },
+        {
+          "codepoint": "U+10400",
+          "available_family": "Noto Sans Deseret",
+          "file": "NotoSansDeseret-Regular.ttf",
+          "glyph_available": true
+        },
+        {
+          "codepoint": "U+1F600",
+          "available_family": "DejaVu Sans",
+          "file": "DejaVuSans.ttf",
+          "glyph_available": true
+        }
+      ],
+      "installed_packages": [
+        "fonts-noto-cjk 1:20230817+repack1-3",
+        "fonts-noto-color-emoji 2.047-0ubuntu0.24.04.1",
+        "fonts-noto-core 20201225-2"
+      ],
+      "scope": "font availability; actual glyph appearance requires screenshot review"
+    },
+    "files": {
+      "static/archive/site.css": "f01d067eb221dc5e1f6166ae24c5a84325126eeb52b9ac7cd39e05a46aa78533",
+      "archive/tests/browser_input_limits.mjs": "2566d3d96de45418165f4a987189946a095cac340973e70036c2486970cc70fc",
+      "archive/tests/browser_review.mjs": "62a942540edd1ec470b4d0c1553ec9bf1483fefa9c413b9063766893c22c848c",
+      "archive/tests/run_browser_input_limits.py": "1c4e0b27457c11a32fd6463276d096d83b96422bd5187eb9dd15916ddedb9378",
+      "archive/tests/browser_fonts.py": "a3d8dfd806f9d2cb703df49ed25b80c05fbea05f6fd810345b9070bb09d4deb4",
+      ".github/workflows/verify.yml": "a2d2e2d433066adea7efe94b9a7f0548ad8fb98befe69c4c3bd931c6f93df58b"
+    }
+  },
+  "run": 42296037110,
+  "jobs": {
+    "guarantees": {
+      "id": 128161395044,
+      "discovered": 157,
+      "executed": 147,
+      "skipped": 10,
+      "seconds": 130.736
+    },
+    "postgres-guarantees": {
+      "id": 128161395199,
+      "executed": 35,
+      "skipped": 0,
+      "seconds": 28.369,
+      "postgresql": "16.15"
+    },
+    "browser-input-contract": {
+      "id": 128161394571,
+      "reference_tests": 3,
+      "screenshots": 37,
+      "color_cases": 391,
+      "measured_elements": 1956,
+      "failed_cases": 0,
+      "unmeasured": 0,
+      "server_verified": true
+    }
+  },
+  "artifact": {
+    "id": 13542570465,
+    "sha256": "aa97ba5b4c2150c4692ea7e6a2c6f3be9cd54a84f8591bcd19bc9e50d6e4bced",
+    "files": 40,
+    "expires_at": "2026-11-13T21:21:57Z",
+    "download_digest_verified": true,
+    "allowlist_verified": true
+  },
+  "minimum_ratios": {
+    "normal_text": 4.565644512773976,
+    "field_boundary": 3.8150278929171164,
+    "focus_outline": 7.915119720560343
+  },
+  "agent_image_inspection": [
+    "home-390-page.png",
+    "archive-1440-page.png",
+    "login-320-page.png",
+    "editor-320-error.png"
+  ],
+  "human_acceptance": "unrun",
+  "browser_zoom": "unrun",
+  "cross_browser_device": "unrun",
+  "real_authkit": "unrun",
+  "hosted_provider_offhost_recovery": "unrun"
+}

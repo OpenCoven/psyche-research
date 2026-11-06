@@ -57,7 +57,7 @@ Do not reduce the seven-day recovery requirement to fit a free plan, silently as
 
 ## Synthetic screenshot and color review
 
-[BROWSER_REVIEW.md](BROWSER_REVIEW.md) describes PR #30's downloadable full-page/focus gallery, source fingerprints and bounded computed-color diagnostics. Its first native execution captured 37 images and exposed insufficient field-border contrast; the repair requires current-head qualification. Use the exact accepted-source artifact and its digest for visual inspection, retain failures, and record the human reviewer/result separately. Existing rendered reflow/keyboard evidence remains valid within its recorded scope; screenshot availability or a passing color calculation does not establish human, actual zoom, device or assistive-technology acceptance.
+[BROWSER_REVIEW.md](BROWSER_REVIEW.md) describes PR #30's downloadable full-page/focus gallery, source fingerprints and bounded computed-color diagnostics. Its first native execution captured 37 images and exposed insufficient field-border contrast. Restored-font source d39e897 passed the repaired native scope with zero failed/unmeasured cases, verified source/artifact fingerprints and a separate database postcondition; [the receipt](evidence/BROWSER_REVIEW_20261106.md) records exact scope. Later heads retain their own qualification requirement. Use the exact accepted-source artifact and its digest for visual inspection, retain failures, and record the human reviewer/result separately. Existing rendered reflow/keyboard evidence remains valid within its recorded scope; screenshot availability or a passing color calculation does not establish human, actual zoom, device or assistive-technology acceptance.
 
 ## Browser execution sheet
 
