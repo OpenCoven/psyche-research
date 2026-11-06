@@ -2,6 +2,10 @@
 
 Updated 2026-11-04. Engineering choices below are reversible implementation decisions under the task authorization. Policy/terms adoption, an accountable operator, hosting, new persistent production credentials, costs, outreach, deployment, and pilot opening remain human approval gates. No earlier archive charter or discussion was available in the repository or narrow neighboring documentation search; the attached task is the product charter.
 
+## D010: qualify the merged main framework pin
+
+Main `b46613f` merges dependency PR #14 with Django 6.1.2. The qualification branch retains that exact version and registry hashes while preserving all WorkOS/transitive pins. Earlier Django 5.2 LTS references record the original architecture decision; the current source/runtime version is 6.1.2. A local full moderation suite passed with ten explicit PostgreSQL skips, and fresh migration/archive/settings checks passed with this runtime. Current-source PostgreSQL, hosted and human evidence remain required; a dependency merge alone does not establish them. See [the qualification receipt](evidence/DJANGO_MAIN_QUALIFICATION_20261106.md).
+
 ## D009: durably consume rotating credentials before external exchange
 
 Independent review of the earlier qualification repair reproduced consumed-token recovery after a process exit because replacement saving remained inside an outer request transaction. The candidate therefore uses a separate session/identity-bound WorkOSCredential table. It commits an empty refresh claim before exchange, validates the returned token and finalizes only the same live claim. Ordinary session response saving has no token authority. Dead claims require fresh sign-in after thirty seconds; active concurrent requests wait at most five seconds before a retryable response. Callback consumption remains durably committed before code exchange. Local process-loss, concurrent-request, stale-save, expiry and revocation regressions pass; PostgreSQL/provider evidence is still required.

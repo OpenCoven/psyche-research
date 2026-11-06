@@ -1,0 +1,202 @@
+{
+  "application_sha": "c4e94c6a2c82ed39dcc17e8c2950f50abf58689c",
+  "tree": "ab8e04b27cf9f5060b81b0a3b777b6c29863547e",
+  "approved_input": "ce8eeccfbedb517882de807d4fd98f3d5b53ff80",
+  "main_input": "b46613fffb8dafc422f03bf7df5f2e189a61c463",
+  "source_sha256": {
+    ".github/workflows/verify.yml": "216c8563b738e06017f18f61ae0a17ddeaf1157b5a2a046393ac92ee60301ca2",
+    ".vercelignore": "f83aa42a52375d94989443bda793c89c4199afd7586ffec7d478e3791a4332dc",
+    "archive/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/apps.py": "217a93fd36bd62b246dec22ca94b374eff526238004ee849fdb581e19bb3d714",
+    "archive/context_processors.py": "d17a2c2d3083d2e66942697fae67b4825ee03757e1afa441857a9ef6be74b982",
+    "archive/forms.py": "dbe583961cc94c854964e1d37e003f790a0edbf42b2e2b2f8d12a47ca293e010",
+    "archive/management/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/management/commands/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/management/commands/backup_archive.py": "32f5e4a7b68afb435c6bb64bea86de1fb6467d6ae5aeb85035554a292a43f2c4",
+    "archive/management/commands/link_workos_identity.py": "7cf26992ebf02e13c04783f775abd6969c448d4d11e7b55fc762761e2c1e1008",
+    "archive/management/commands/pause_intake.py": "34f29f74d3d9cbdfa0b86a20514bc9e00692315d8aff8bfbaf060a8cc23dea95",
+    "archive/management/commands/prepare_restored_archive.py": "7f4a9dffd38d95672fd2f40f82e0ecc1edad6967a9ed5b5ea3c42ae659264d3f",
+    "archive/management/commands/provision_contributor.py": "ec2c1fa358a5cf342710a3e9627b0505788717c8dc1a5a1ed493f04ecfa05ceb",
+    "archive/management/commands/restore_archive.py": "97e70a46b8ae80f9337d028cadd832a62909673798427778791dcc319a556266",
+    "archive/management/commands/set_moderator.py": "59073f33eb4662dc3485f4cfbb2fdadef157bb714742c597dacf353be0fdc643",
+    "archive/management/commands/verify_archive.py": "32b3f2dcce88514699f7591b3aa91301890c19f2741c54715b4a51f7d25bb14e",
+    "archive/middleware.py": "1148fad9fe8ba12bf9a56166a505d43c0b0e86941c1c4ab33dc22cfe19e12fd2",
+    "archive/migrations/0001_initial.py": "40dea89a0dfd435433e1019dc46a520f4159727f82353d0a45a8099c9a0ea101",
+    "archive/migrations/0002_pilot_invariants.py": "e52548684cd56421790f7ca2e89a5327bfec7102cbad89d6fec49fcf595a6c69",
+    "archive/migrations/0003_decision_conflicts.py": "2e84867d41b795b16f5e84816340e3d26980293884902f677da46d845be68c46",
+    "archive/migrations/0004_appeal_decision_binding.py": "653bf581db14b1e6eda77f769c5c8bd3b5b747fa5b2c82e4df8adf7dc974c710",
+    "archive/migrations/0005_workos_identity_login_attempt.py": "3f2ae8d806dcdd70576c569006a0c8f58fb622d6b1c96cae4fc7842d92907f21",
+    "archive/migrations/0006_durable_workos_credential.py": "cca6c37b492ef2b15a0f8a4e8ccd764a5374b657e60918b44776eeb9a02e2d82",
+    "archive/migrations/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/models.py": "d892df54a29358847587f0e1fae1836c17bed61553227971c6cafc11355d9fd4",
+    "archive/recovery.py": "dcc596d287f0f8f721cc09671533849425c84b4481709ee5a67778c4c3683ee2",
+    "archive/services.py": "d387ea37712bd7635ee593d1025ae45f6094d9789c1bbd8a08879ab0242cf770",
+    "archive/templatetags/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/templatetags/research.py": "d062f36ee7271f8dd8ef2208a7be4dd2fcdc84469f2210fa894c709d4516827c",
+    "archive/tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive/tests/moderation_race_fixture.py": "0a75a83f7ded8fd64f1efb7351c2b820a39d2905fd0e734232df4e72c2a03573",
+    "archive/tests/refresh_crash_fixture.py": "7098d422571c4608cc3ae1aa173b0b11a2ec449bd8f134223f27e03cf2f28466",
+    "archive/tests/session_overlap_fixture.py": "c2ba86aaa830b3b90a73b6a78b9195752fef5f7456e67bfb10d21cfc0a4728c4",
+    "archive/tests/test_configuration.py": "efb1303068640ee9491ba3e5a734e61b4e9c61368173e333689a993f0f113ed8",
+    "archive/tests/test_form_rendering.py": "b828df66279a38dfb56379a922f83964898f476d01d269395f4aec6ac068fe9c",
+    "archive/tests/test_guarantees.py": "325e1befbd82a5af7f2e430ddc82bf301e3628893cf9c867937c1cc81b294949",
+    "archive/tests/test_moderation.py": "933836b8f73994076d2d79a25d8336e4305dbe14163d451515be2be2c53bd8eb",
+    "archive/tests/test_operations.py": "38824ba5bafccb819a0c6340e6bf337f2162536996f0dc5cbd45a4ec145cc1e5",
+    "archive/tests/test_postgres.py": "5524b99be01f6aee06866cbf3a6e06946e9ff3ec691b844385f274542e158d14",
+    "archive/tests/test_refresh_durability.py": "290b6ab79589c1991150914ad28533acde360cd74a1b6121ffa674b81ae71677",
+    "archive/tests/test_restore_preparation.py": "a5a8cfd8cb4677ce3ba9d80e4c46cb7f6daf5e98a2837591c0a917a5aa9c2a6e",
+    "archive/tests/test_telemetry.py": "374075302140e9d57d2556760c3ae2c2c325c7648299cc2d0bd5cbe46da8a1e8",
+    "archive/tests/test_workos_auth.py": "a76c310b968a393facb4023dfc636c6f33cff35bf1020ff733216c3dbb016a80",
+    "archive/urls.py": "643c368aeade777dc7c14d8306f88934e7741ba8ce8c5c8b3453cbe7be5cd37e",
+    "archive/views.py": "ee192d632aa257a38e285f27ec37b138efab963817dcb71c8de47104c3c7eb30",
+    "archive/workos_auth.py": "d9e7fb8709c33af844ff67811d61f20271f4f138765b649ffc011d3c0746d5ee",
+    "config/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "config/database.py": "911e8b698d9f38a6c876628e19acd670f94e91d91650ad2ed8b9a5276ad2d8cf",
+    "config/safe_logger.py": "6cc856f8c2d7731c948ce4d82f156fb6973772a39e26224efc3a11d4e280a11c",
+    "config/settings.py": "bf3b2f5c33d643522980b30c30e74826ff22eefa8602e47ed80862198b16953e",
+    "config/urls.py": "e746fe5e34e9df95550f12ee82eab24f4ca6346cf5ba8c567eca5762f16b947f",
+    "config/wsgi.py": "b734d47b9b6a74457e9b7f1eabc0f472c86a1e94a920545a02e2fa81e1b160f5",
+    "manage.py": "b4e247dd54f5878612b84394669b2ac8c78f9c9ffbc8fda6a36bbfbf0513bc71",
+    "requirements.txt": "094b93c27599adc3b88ab9fe4fb715313b0bf695ad71f143098df73dab90672b",
+    "static/archive/site.css": "8e851254ab3f7aee7a1b1276082cff63d40b856028206bf1be5961865750d2da",
+    "templates/404.html": "1704de0f74e9ea7b37645dc4495477a9d645eb9188c1e478fa2b165489716d81",
+    "templates/500.html": "36c9e19552c758eb6dbbc13b3d285d2520dbb21643b143a273039f1f855b7791",
+    "templates/archive/_appeals.html": "437ad3d484f8897ec0de041d13e13e7d9be0f53744f4ec772dc6d75f7ab6dbe7",
+    "templates/archive/_decisions.html": "b6c7b6bdd29cc2be00b1c17ea420f00ab0a0f3d1d2d423251a97c110ea4a322e",
+    "templates/archive/_form.html": "13601588776109ee1f62e234b5d24a9beb0929b6f808eb83b8269a03701aed3c",
+    "templates/archive/_snapshot.html": "3c1683b030ff8a0cbcd5237b8c1a7843287fcfbc4405e271c95d8487bbd5dd89",
+    "templates/archive/browse.html": "2ae7fc4aaca6e8c63584f623632be1b78e7874d640c41b977f919a4755c3bde6",
+    "templates/archive/dashboard.html": "9567ee3db4917a1f1c438f5697b38f4f7387d09f219a7f2482bb028b84a3d3f6",
+    "templates/archive/edit.html": "47dcabc174838cd40c4c2b6c882d4029593efaf07e60b998d02b477f3d70d388",
+    "templates/archive/home.html": "394be27e03ed78e5d08702c56f02f81a69951693d36554e3312197523ee7e263",
+    "templates/archive/moderate.html": "f7a096ce3f180b233ea0c4f5eba5fc0161a46ae9253f19f135c38660304e26b4",
+    "templates/archive/operations.html": "ad818d8bee123b27487975fc7e9de5ae22f861540b72f3907fed33f3aa3f1e96",
+    "templates/archive/policies.html": "8ec9751b32b919c5795a8d78ad5fe8d685b90d4b4541e03041f337c5da070b84",
+    "templates/archive/queue.html": "a92107c7b39af959bc1a74261d3379627ba4ff900c9aab249f34b9455f703c90",
+    "templates/archive/report.html": "b525194c8ae84cbb1fc6e596ff47fdee9cda32b968c9e7187a33a229e7450ae8",
+    "templates/archive/version.html": "95daacad1614020d5209c66dc243468cba13c7d7735f1e5fe92918bb2c9233de",
+    "templates/archive/withdraw.html": "6b2178d7025cdca2ff49e859dc9652953f7e3ddf2f54b24e4ba05f8097b861d1",
+    "templates/base.html": "26c54962ad6329a1138e371a7b98739520ce258e1aca0fa0a24c092954dfcf18",
+    "templates/registration/login.html": "145bfe874dab600643dc6cdf311dac134f26de08d9a58ef53fc7639dd20b08de",
+    "templates/registration/password_change_done.html": "408245b75fc4fce2642e836a99dc26d1eea3d4d4565c0cfd2f70528c984dbaf1",
+    "templates/registration/password_change_form.html": "72300a4408f0be51700116b142f8639b847df334053e8e7ddc2fbcd2bbec9624",
+    "templates/registration/workos_login.html": "67e17feb8ea58968c597c1ef5723d07a8f029dbe24474970b415dac4a555f519",
+    "vercel.json": "749c0d1d1d87ff621e87c1c5acc420893b6ee6723ad9d279293ea0a187a40d52"
+  },
+  "changed_since_approved_input": [
+    "requirements.txt"
+  ],
+  "django_wheel_sha256": "141efee6ec64d1db6db90683bf734c550102450f444fb099063b0be1bd27d991",
+  "application_suite": {
+    "tests": 132,
+    "executed": 122,
+    "postgres_skips": 10,
+    "test_seconds": 42.522,
+    "process_seconds": 43.584,
+    "exit": 0,
+    "log": "var/django-main/moderation-application.log"
+  },
+  "prior_canonical_django_rehearsal": {
+    "application_sha": "241597ca1cb96f6224d0ab4c990c14dd224a43a0",
+    "tests": 126,
+    "executed": 117,
+    "postgres_skips": 9,
+    "test_seconds": 44.382,
+    "exit": 0,
+    "log": "var/django-main/application-first.log"
+  },
+  "checks": [
+    {
+      "check": "fresh-migrations",
+      "exit": 0,
+      "seconds": 1.178,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "migrate",
+        "--noinput"
+      ]
+    },
+    {
+      "check": "migration-drift",
+      "exit": 0,
+      "seconds": 0.633,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "makemigrations",
+        "--check",
+        "--dry-run"
+      ]
+    },
+    {
+      "check": "system-check",
+      "exit": 0,
+      "seconds": 0.599,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "check",
+        "--fail-level",
+        "WARNING"
+      ]
+    },
+    {
+      "check": "archive-verifier",
+      "exit": 0,
+      "seconds": 0.599,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "verify_archive"
+      ]
+    },
+    {
+      "check": "dependency-check",
+      "exit": 0,
+      "seconds": 0.195,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ]
+    },
+    {
+      "check": "production-check",
+      "exit": 0,
+      "seconds": 0.644,
+      "argv": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "check",
+        "--deploy",
+        "--fail-level",
+        "WARNING"
+      ]
+    }
+  ],
+  "log_sha256": {
+    "dependency-install.log": "bbd1f189e40ca39010fc739d16d330fbbee310d459922bab90ddc5e7d08b13e4",
+    "fresh-migrations.log": "ee67627c5101edab35d267440cec2a62ca97096fcaf02fa50f21bad465816856",
+    "system-check.log": "1e3e63f221bde88816c4a4ef7367691607b20cc1d194028a02ec9ae0586cf9b1",
+    "migration-drift.log": "a2bfa7b376c38062f77ce2b1e703876aaa04662f96355cdf5dc9d0d075302b05",
+    "moderation-application.log": "cacc7267acab29ee5fa68710233bae6a95c7aa422435c56065e95df1d7596af7",
+    "application-first.log": "bc7582a8bf4deb166c1c9fe1589b6267bac8893857c637c602e14e6945f5e189",
+    "production-check.log": "1e3e63f221bde88816c4a4ef7367691607b20cc1d194028a02ec9ae0586cf9b1",
+    "dependency-check.log": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+    "archive-verifier.log": "ee0ec46ba872f01b33f8c32cce198a9c548d7bd9b6a8571697d1e265ab97f79c"
+  },
+  "review": "Root inspected the independently authored moderation tests and disposable PostgreSQL harness; earlier independent reviews cover unchanged application code; no new scientific peer review or certification.",
+  "remote_pr": 21,
+  "ci": "not yet executed on this source; push follows evidence freeze",
+  "vercel_git_link": "verified null through official opaque-credential CLI over process-local TLS CONNECT tunnel",
+  "unrun": [
+    "ten current-head PostgreSQL cases",
+    "current-head hosted Actions",
+    "final-application rendering",
+    "live WorkOS",
+    "hosted/provider/off-host recovery",
+    "human accessibility/policy/operating acceptance"
+  ]
+}
