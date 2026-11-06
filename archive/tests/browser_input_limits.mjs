@@ -209,7 +209,9 @@ try {
   assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
   assert.equal(await evaluate('(' + function () {
     const described = document.getElementById('id_artifacts').getAttribute('aria-describedby') || '';
-    return described.split(/\s+/).filter(Boolean).every(id => document.getElementById(id));
+    const ids = described.split(/\s+/).filter(Boolean);
+    return ids.includes('id_artifacts_error') && ids.includes('id_artifacts_helptext') &&
+      ids.every(id => document.getElementById(id));
   }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
   await tabTo(errorLink);
   await key('Enter');
