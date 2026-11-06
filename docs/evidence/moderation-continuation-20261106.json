@@ -1,0 +1,69 @@
+{
+  "recorded_date": "2026-11-06",
+  "previous_goal_turn": "progress: added issue-5 moderation coverage, dependency validation and exact evidence",
+  "this_goal_turn": "no progress: revalidated unchanged source and same external prerequisites; no live current-source process/job to wait on",
+  "source_manifest_sha256": "cf997e88e91c2c2237a15d712c623e24b74b3d518ad5262ec8191bbcba993325",
+  "source_manifest_mismatches": [],
+  "main": "14df69473ffa8796deb4556133df2ba897371d85",
+  "draft_heads": {
+    "16": "f7ebe30f3ec37dd032648ade8ffd121f0efc7d93",
+    "17": "86f564561b6851b0fb0f89f435cc777d70f6143c",
+    "18": "f9ae40780b3500e9235e76735345f442e5b91c0b",
+    "19": "2abdebcc31209782f3dccd23dfbe84f85d787612"
+  },
+  "main_runs": [
+    {
+      "id": 42196675581,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42196620344,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42196551292,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "issues": {
+    "1": "open",
+    "4": "open",
+    "5": "open"
+  },
+  "new_issue_comments": {
+    "5": 0,
+    "8": 0,
+    "9": 0
+  },
+  "runtime": {
+    "uid": 501,
+    "account_resolvable": false,
+    "available_supported_executables": []
+  },
+  "browser": {
+    "apps": 0,
+    "browsers": 0,
+    "errors": [
+      "Native service startup request failed",
+      "Browser access host unavailable"
+    ]
+  },
+  "vercel_read": {
+    "command": "vercel api /v9/projects/prj_KpONwA0jddpWRBIVQGt22FbZX7t2 --scope 0xbuns --method GET",
+    "exit_code": 1,
+    "result": "Error: fetch failed"
+  },
+  "new_owner_state_observed": {
+    "worktree": "psyche-research-main-refresh",
+    "head": "23a30e6",
+    "changes_made_by_this_continuation": false
+  },
+  "tests_repeated": false,
+  "reason_tests_not_repeated": "All 78 source fingerprints match the prior passing 132-test/ten-skip suite; no application, dependency or test change warrants repetition.",
+  "next_action": "Restore a supported isolated PostgreSQL runtime, or resolve trusted-host Vercel access and applicable project-only Git-disconnect/publication authorization before exact-source CI. Restore browser access for rendered checks; hosted/provider/human acceptance remains separate.",
+  "goal_status": "active; incomplete; no completion or blocked-threshold claim",
+  "pilot": "NO-GO; real intake paused"
+}

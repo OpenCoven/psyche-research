@@ -106,6 +106,12 @@ def publish(row):
 
 @skipUnless(connection.vendor == 'postgresql', 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.')
 class PostgreSQLGuarantees(SimpleTestCase):
+    def test_live_pause_orderings_and_competing_moderation_decisions(self):
+        self.run_in_disposable_schema('''
+from archive.tests.moderation_race_fixture import run_moderation_races
+run_moderation_races()
+''')
+
     def test_live_refresh_claim_commits_before_exchange_and_survives_view_rollback(self):
         self.run_in_disposable_schema('''
 from archive.tests.session_overlap_fixture import run_durable_refresh_boundary
