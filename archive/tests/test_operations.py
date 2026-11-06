@@ -9,6 +9,20 @@ from django.test import SimpleTestCase
 ROOT=Path(__file__).resolve().parents[2]
 
 class OperationalDrill(SimpleTestCase):
+    def test_refresh_claim_commits_before_exchange_and_survives_view_rollback(self):
+        with tempfile.TemporaryDirectory(prefix='psyche-refresh-durable-') as directory:
+            env = {**os.environ, 'LOCAL_DEVELOPMENT': '1', 'DJANGO_SETTINGS_MODULE': 'config.settings',
+                   'DATABASE_PATH': str(Path(directory) / 'synthetic.sqlite3')}
+            env.pop('DATABASE_URL', None)
+            self.run_python('''
+import django
+django.setup()
+from django.core.management import call_command
+call_command('migrate', verbosity=0)
+from archive.tests.session_overlap_fixture import run_durable_refresh_boundary
+run_durable_refresh_boundary()
+''', env)
+
     def test_workos_callback_consumption_commits_before_provider_exchange(self):
         with tempfile.TemporaryDirectory(prefix='psyche-callback-commit-') as directory:
             env = {**os.environ, 'LOCAL_DEVELOPMENT': '1', 'DJANGO_SETTINGS_MODULE': 'config.settings',
@@ -60,13 +74,13 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from archive import services
-from archive.models import Capacity,Submission,Version,Event,Appeal,Report,RateBucket,WorkOSIdentity,WorkOSLoginAttempt
+from archive.models import Capacity,Submission,Version,Event,Appeal,Report,RateBucket,WorkOSIdentity,WorkOSLoginAttempt,WorkOSCredential
 from archive.recovery import copy_database,verify,REQUIRED_TRIGGERS
 from archive.tests.test_guarantees import content
 from django.utils import timezone
 call_command('migrate',verbosity=0)
 # Exercise real backwards/forwards schema operations before data and require every trigger each time.
-for target in ('0002_pilot_invariants','0004_appeal_decision_binding','0005_workos_identity_login_attempt'):
+for target in ('0002_pilot_invariants','0004_appeal_decision_binding','0005_workos_identity_login_attempt','0006_durable_workos_credential'):
  call_command('migrate','archive',target,verbosity=0)
  with connection.cursor() as c:
   c.execute("SELECT name FROM sqlite_master WHERE type='trigger'")
@@ -97,7 +111,8 @@ private=services.create_submission(a)
 services.save_submission(a,private.pk,content(title='SYNTHETIC unfinished private sentinel'),0)
 session=SessionStore();session['synthetic']='private';session.save()
 RateBucket.objects.create(key='synthetic-drill',expires_at=timezone.now())
-WorkOSIdentity.objects.create(user=a,client_id='client_synthetic',subject='user_synthetic')
+identity=WorkOSIdentity.objects.create(user=a,client_id='client_synthetic',subject='user_synthetic')
+WorkOSCredential.objects.create(session_id=session.session_key,identity=identity,sealed='synthetic-sealed-only',provider_session_id='session_synthetic',expires_at=timezone.now())
 WorkOSLoginAttempt.objects.create(state_hash='synthetic-state',browser_hash='synthetic-browser',verifier='synthetic-verifier',expires_at=timezone.now())
 base=Path(os.environ['DRILL_DIRECTORY']);source=Path(os.environ['DATABASE_PATH']);backup=base/'backup.sqlite3';restore=base/'restored.sqlite3'
 before=list(Version.objects.order_by('id').values_list('digest',flat=True))
@@ -109,6 +124,7 @@ assert stat.S_IMODE(backup.stat().st_mode)==stat.S_IMODE(restore.stat().st_mode)
 with sqlite3.connect(restore) as db:
  verify(db)
  assert db.execute('SELECT count(*) FROM django_session').fetchone()[0]==0
+ assert db.execute('SELECT count(*) FROM archive_workoscredential').fetchone()[0]==0
  assert db.execute('SELECT count(*) FROM archive_ratebucket').fetchone()[0]==0
  assert db.execute('SELECT count(*) FROM archive_workosloginattempt').fetchone()[0]==0
  assert db.execute('SELECT subject FROM archive_workosidentity').fetchone()[0]=='user_synthetic'
@@ -182,7 +198,7 @@ snapshot={'title':'SYNTHETIC preserved upgrade'}
 digest=hashlib.sha256(json.dumps(snapshot,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 old.get_model('archive','Version').objects.create(work_id=work.pk,submission_id=sub.pk,number=1,snapshot=snapshot,digest=digest)
 old.get_model('archive','Decision').objects.create(submission_id=sub.pk,actor_id=user.pk,revision=0,digest=digest,action='publish',reason='Synthetic historical decision')
-for target in ('0004_appeal_decision_binding','0002_pilot_invariants','0004_appeal_decision_binding','0005_workos_identity_login_attempt'):
+for target in ('0004_appeal_decision_binding','0002_pilot_invariants','0004_appeal_decision_binding','0005_workos_identity_login_attempt','0006_durable_workos_credential'):
  call_command('migrate','archive',target,verbosity=0)
  with connection.cursor() as c:
   c.execute("SELECT name FROM sqlite_master WHERE type='trigger'");assert REQUIRED_TRIGGERS=={x[0] for x in c.fetchall()}

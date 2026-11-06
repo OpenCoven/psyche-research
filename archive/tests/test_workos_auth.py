@@ -21,7 +21,7 @@ from django.utils import timezone
 from workos import WorkOSClient
 from workos.session import seal_session_from_auth_response, unseal_data
 
-from archive.models import Event, Submission, WorkOSIdentity, WorkOSLoginAttempt
+from archive.models import Event, Submission, WorkOSIdentity, WorkOSLoginAttempt, WorkOSCredential
 from archive import workos_auth as auth
 
 SYNTHETIC_SETTINGS = {
@@ -84,6 +84,9 @@ class WorkOSAuthenticationTests(TestCase):
         state = self.begin()
         self.assertEqual(self.finish(state).status_code, 302)
 
+    def credential(self):
+        return WorkOSCredential.objects.get(pk=self.client.session[auth.CREDENTIAL])
+
     def test_pkce_and_server_state_are_bound_to_browser_and_consumed_once(self):
         state = self.begin()
         attempt = WorkOSLoginAttempt.objects.get()
@@ -134,7 +137,7 @@ class WorkOSAuthenticationTests(TestCase):
         self.assertNotContains(denied, private.title, status_code=404)
         self.assertEqual(self.client.get('/moderation/').status_code, 403)
         self.assertEqual(int(self.client.session['_auth_user_id']), self.author.pk)
-        sealed = self.client.session[auth.SESSION_DATA]
+        sealed = self.credential().sealed
         self.assertNotIn('synthetic-refresh-token', sealed)
         data = unseal_data(sealed, SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
         self.assertEqual(data['user'], {'id': 'user_synthetic', 'email_verified': True})
@@ -228,17 +231,18 @@ class WorkOSAuthenticationTests(TestCase):
     def test_expired_access_token_refresh_checks_new_identity_and_retains_local_roles(self):
         self.sign_in()
         session = self.client.session
-        session[auth.SESSION_DATA] = seal_session_from_auth_response(access_token=self.token(exp=int(time.time()) - 1),
+        credential = self.credential()
+        credential.sealed = seal_session_from_auth_response(access_token=self.token(exp=int(time.time()) - 1),
             refresh_token='synthetic-old-refresh', user={'id': 'user_synthetic', 'email_verified': True},
             cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
-        session.save()
+        credential.save(update_fields=['sealed'])
         refreshed = seal_session_from_auth_response(access_token=self.token(), refresh_token='synthetic-new-refresh',
             user={'id': 'user_synthetic', 'email_verified': True, 'email': 'synthetic-profile@example.invalid'},
             cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
         self.api.user_management.load_sealed_session.return_value.refresh.return_value = SimpleNamespace(
             authenticated=True, sealed_session=refreshed)
         self.assertEqual(self.client.get('/workspace/').status_code, 200)
-        data = unseal_data(self.client.session[auth.SESSION_DATA], SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
+        data = unseal_data(self.credential().sealed, SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
         self.assertEqual(data['refresh_token'], 'synthetic-new-refresh')
         self.assertNotIn('email', data['user'])
         self.assertFalse(self.author.groups.exists())
@@ -246,8 +250,9 @@ class WorkOSAuthenticationTests(TestCase):
     def test_absolute_local_session_age_cannot_be_extended_by_refresh(self):
         self.sign_in()
         session = self.client.session
-        session[auth.SESSION_STARTED] = time.time() - 8 * 60 * 60 - 1
-        session.save()
+        credential = self.credential()
+        credential.expires_at = timezone.now() - timedelta(seconds=1)
+        credential.save(update_fields=['expires_at'])
         self.assertEqual(self.client.get('/workspace/').status_code, 302)
         self.assertNotIn('_auth_user_id', self.client.session)
 
@@ -257,12 +262,13 @@ class WorkOSAuthenticationTests(TestCase):
 
         self.sign_in()
         stored = self.client.session
-        stored[auth.SESSION_DATA] = seal_session_from_auth_response(
+        credential = self.credential()
+        credential.sealed = seal_session_from_auth_response(
             access_token=self.token(exp=int(time.time()) - 1),
             refresh_token='synthetic-once-only-refresh',
             user={'id': 'user_synthetic', 'email_verified': True},
             cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
-        stored.save()
+        credential.save(update_fields=['sealed'])
         refreshed = seal_session_from_auth_response(
             access_token=self.token(), refresh_token='synthetic-replacement-refresh',
             user={'id': 'user_synthetic', 'email_verified': True},
@@ -290,11 +296,12 @@ class WorkOSAuthenticationTests(TestCase):
     def test_refresh_survives_a_later_server_error_without_reusing_old_token(self):
         self.sign_in()
         session = self.client.session
-        session[auth.SESSION_DATA] = seal_session_from_auth_response(
+        credential = self.credential()
+        credential.sealed = seal_session_from_auth_response(
             access_token=self.token(exp=int(time.time()) - 1), refresh_token='synthetic-old-refresh',
             user={'id': 'user_synthetic', 'email_verified': True},
             cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
-        session.save()
+        credential.save(update_fields=['sealed'])
         refreshed = seal_session_from_auth_response(
             access_token=self.token(), refresh_token='synthetic-new-refresh',
             user={'id': 'user_synthetic', 'email_verified': True},
@@ -348,11 +355,12 @@ class WorkOSAuthenticationTests(TestCase):
     def test_expired_wrong_client_token_is_not_refreshed(self):
         self.sign_in()
         session = self.client.session
-        session[auth.SESSION_DATA] = seal_session_from_auth_response(
+        credential = self.credential()
+        credential.sealed = seal_session_from_auth_response(
             access_token=self.token(exp=int(time.time()) - 1, client_id='client_other'),
             refresh_token='synthetic-refresh', user={'id':'user_synthetic', 'email_verified':True},
             cookie_password=SYNTHETIC_SETTINGS['WORKOS_COOKIE_PASSWORD'])
-        session.save()
+        credential.save(update_fields=['sealed'])
         self.assertEqual(self.client.get('/workspace/').status_code, 302)
         self.api.user_management.load_sealed_session.assert_not_called()
 

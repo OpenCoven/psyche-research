@@ -106,6 +106,12 @@ def publish(row):
 
 @skipUnless(connection.vendor == 'postgresql', 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.')
 class PostgreSQLGuarantees(SimpleTestCase):
+    def test_live_refresh_claim_commits_before_exchange_and_survives_view_rollback(self):
+        self.run_in_disposable_schema('''
+from archive.tests.session_overlap_fixture import run_durable_refresh_boundary
+run_durable_refresh_boundary()
+''')
+
     def run_in_disposable_schema(self, body, timeout=120):
         # This subprocess has ordinary connections rather than Django test flush or disabled guards.
         indented = textwrap.indent(textwrap.dedent(body).strip(), '    ')
@@ -336,7 +342,7 @@ from datetime import timedelta
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.utils import timezone
-from archive.models import Appeal, Report, RateBucket, Work, WorkOSIdentity, WorkOSLoginAttempt, CONTENT_FIELDS
+from archive.models import Appeal, Report, RateBucket, Work, WorkOSIdentity, WorkOSLoginAttempt, WorkOSCredential, CONTENT_FIELDS
 
 # Use the exact ephemeral CI service's clients rather than an unrelated runner version.
 container = os.environ.get('POSTGRES_TEST_CONTAINER_ID', '')
@@ -393,12 +399,14 @@ session['_auth_user_hash'] = author.get_session_auth_hash()
 session.save()
 sensitive_values.extend([session.session_key, Session.objects.get(session_key=session.session_key).session_data])
 RateBucket.objects.create(key='synthetic-postgres-logical-restore', count=3, expires_at=timezone.now()+timedelta(minutes=5))
-WorkOSIdentity.objects.create(user=author,client_id='client_synthetic',subject='user_synthetic')
+identity=WorkOSIdentity.objects.create(user=author,client_id='client_synthetic',subject='user_synthetic')
+WorkOSCredential.objects.create(session_id=session.session_key,identity=identity,sealed='synthetic-sealed-only',provider_session_id='session_synthetic',expires_at=timezone.now()+timedelta(hours=1))
 WorkOSLoginAttempt.objects.create(state_hash='synthetic-state',browser_hash='synthetic-browser',verifier='synthetic-verifier',expires_at=timezone.now()+timedelta(minutes=5))
 
 def source_state():
     return {
-        'counts': {model._meta.label: model.objects.count() for model in (User, Group, Work, Submission, Version, Decision, Event, Appeal, Report, Session, RateBucket, WorkOSIdentity, WorkOSLoginAttempt)},
+        'counts': {model._meta.label: model.objects.count() for model in (User, Group, Work, Submission, Version, Decision, Event, Appeal, Report, Session, RateBucket, WorkOSIdentity, WorkOSLoginAttempt, WorkOSCredential)},
+        'workos_credentials':list(WorkOSCredential.objects.order_by('id').values('id','session_id','identity_id','sealed','provider_session_id','expires_at','claim','claimed_at')),
         'workos_identities':list(WorkOSIdentity.objects.order_by('id').values('user_id','client_id','subject','enabled')),
         'workos_attempts':list(WorkOSLoginAttempt.objects.order_by('state_hash').values('state_hash','browser_hash','verifier','next_path','expires_at')),
         'capacity': list(Capacity.objects.values('intake_open','queue_limit','per_author_limit','draft_limit','revision')),
@@ -473,7 +481,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.test import Client
 from django.urls import reverse
-from archive.models import Capacity,Version,Submission,Work,Decision,Appeal,Report,Event,RateBucket,WorkOSIdentity,WorkOSLoginAttempt
+from archive.models import Capacity,Version,Submission,Work,Decision,Appeal,Report,Event,RateBucket,WorkOSIdentity,WorkOSLoginAttempt,WorkOSCredential
 from archive import services
 from archive.views import public_versions
 fixture=json.loads(os.environ['POSTGRES_RESTORE_FIXTURE'])
@@ -483,12 +491,12 @@ options=dict(database.get('OPTIONS',{}))
 options['options']=(options.get('options','')+' -c search_path='+fixture['schema']).strip()
 database['OPTIONS']=options
 db=connections['default'];db.settings_dict['OPTIONS']=options
-assert Session.objects.count()==RateBucket.objects.count()==1
+assert Session.objects.count()==RateBucket.objects.count()==WorkOSCredential.objects.count()==1
 assert Capacity.objects.get(pk=1).intake_open
 call_command('verify_archive',stdout=StringIO())
 call_command('prepare_restored_archive',expected_database=database['NAME'],expected_host=database['HOST'],
              expected_port=int(database['PORT'] or 5432),reason='Synthetic PostgreSQL logical restore rehearsal.',stdout=StringIO())
-assert Session.objects.count()==RateBucket.objects.count()==0
+assert Session.objects.count()==RateBucket.objects.count()==WorkOSCredential.objects.count()==0
 assert WorkOSLoginAttempt.objects.count()==0
 assert WorkOSIdentity.objects.get(user_id=fixture['author_id']).subject=='user_synthetic'
 capacity=Capacity.objects.get(pk=1)
@@ -658,7 +666,7 @@ snapshot = {'title': 'SYNTHETIC PostgreSQL preserved publication'}
 digest = hashlib.sha256(json.dumps(snapshot,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 historical.get_model('archive', 'Version').objects.create(work_id=work.pk, submission_id=submission.pk, number=1, snapshot=snapshot, digest=digest)
 historical.get_model('archive', 'Decision').objects.create(submission_id=submission.pk, actor_id=user.pk, revision=0, digest=digest, action='publish', reason='Synthetic historical decision.')
-for target in ('0004_appeal_decision_binding', '0002_pilot_invariants', '0001_initial', '0004_appeal_decision_binding', '0005_workos_identity_login_attempt'):
+for target in ('0004_appeal_decision_binding', '0002_pilot_invariants', '0001_initial', '0004_appeal_decision_binding', '0005_workos_identity_login_attempt','0006_durable_workos_credential'):
     call_command('migrate', 'archive', target, verbosity=0)
     with db.cursor() as cursor:
         cursor.execute("""

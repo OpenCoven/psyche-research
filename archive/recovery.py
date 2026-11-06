@@ -77,6 +77,7 @@ def copy_database(source,destination,restore=False):
             origin.backup(target)
             verify(target)
             if restore:
+                target.execute('DELETE FROM archive_workoscredential')
                 target.execute('DELETE FROM django_session')
                 target.execute('DELETE FROM archive_ratebucket')
                 target.execute('DELETE FROM archive_workosloginattempt')

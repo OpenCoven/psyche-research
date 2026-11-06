@@ -16,26 +16,7 @@ from .models import RateBucket
 
 
 class WorkOSDatabaseSessionMiddleware(SessionMiddleware):
-    """Serialize authenticated session loading, token rotation and response saving."""
-
-    def __call__(self, request):
-        key = request.COOKIES.get(settings.SESSION_COOKIE_NAME, '')
-        if settings.AUTH_PROVIDER != 'workos' or not key or len(key) > 40:
-            return super().__call__(request)
-        try:
-            existing = Session.objects.filter(session_key=key).first()
-            if not existing or not existing.get_decoded().get('_auth_user_id'):
-                # Anonymous OAuth sessions need the callback's consume transaction
-                # to commit before its external, non-retryable code exchange.
-                return super().__call__(request)
-            with transaction.atomic():
-                # Lock before SessionMiddleware loads its cache. Keep the lock until
-                # process_response saves, so an older response cannot restore old tokens.
-                Session.objects.select_for_update().filter(session_key=key).first()
-                return super().__call__(request)
-        except OperationalError:
-            return HttpResponse('Sign-in is temporarily busy. Retry shortly; reload to confirm whether your change was saved.',
-                                status=503, headers={'Retry-After': '5'})
+    """Ordinary sessions hold only a handle; provider rotation commits separately."""
 
 class BoundaryMiddleware:
     def __init__(self,get_response):

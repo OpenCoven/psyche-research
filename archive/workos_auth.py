@@ -3,6 +3,7 @@ import base64
 import hashlib
 import secrets
 import time
+import uuid
 from datetime import timedelta
 from functools import lru_cache
 from urllib.parse import urlsplit
@@ -18,16 +19,25 @@ from django.views.decorators.http import require_GET, require_POST
 from workos import WorkOSClient
 from workos.session import seal_session_from_auth_response, unseal_data
 
-from .models import Capacity, WorkOSIdentity, WorkOSLoginAttempt
+from .models import Capacity, WorkOSIdentity, WorkOSLoginAttempt, WorkOSCredential
 
 SESSION_DATA = 'workos_session'
 SESSION_SUBJECT = 'workos_subject'
 SESSION_ID = 'workos_session_id'
 SESSION_STARTED = 'workos_session_started'
+CREDENTIAL = 'workos_credential'
 BROWSER_NONCE = 'workos_browser_nonce'
 
 
 class InvalidLogin(Exception):
+    pass
+
+
+class SessionChanged(Exception):
+    pass
+
+
+class RefreshBusy(Exception):
     pass
 
 
@@ -58,7 +68,9 @@ def token_claims(token, *, allow_expired=False):
                                  'verify_aud': False, 'verify_exp': not allow_expired})
     if (claims['client_id'] != settings.WORKOS_CLIENT_ID or claims.get('act')
         or not isinstance(claims['sub'], str) or not claims['sub'].startswith('user_')
-        or not isinstance(claims['sid'], str) or not claims['sid'].startswith('session_')):
+        or len(claims['sub']) > 128
+        or not isinstance(claims['sid'], str) or not claims['sid'].startswith('session_')
+        or len(claims['sid']) > 128):
         raise InvalidLogin()
     # First-party session tokens normally omit aud. Bind an explicit audience too.
     audience = claims.get('aud')
@@ -80,7 +92,7 @@ def seal(response):
     return sealed, claims
 
 
-def check_session(sealed):
+def check_session(sealed, consume_refresh):
     try:
         data = unseal_data(sealed, settings.WORKOS_COOKIE_PASSWORD)
     except Exception:
@@ -92,6 +104,8 @@ def check_session(sealed):
         session = client().user_management.load_sealed_session(
             session_data=sealed, cookie_password=settings.WORKOS_COOKIE_PASSWORD)
         session.jwks = jwks(settings.WORKOS_CLIENT_ID)
+        # Commit removal of the one-use credential before crossing the network.
+        consume_refresh()
         result = session.refresh()
         if not result.authenticated:
             raise InvalidLogin()
@@ -204,12 +218,20 @@ def callback(request):
         client_id=settings.WORKOS_CLIENT_ID, subject=claims['sub'], enabled=True, user__is_active=True).first()
     if not identity:
         return HttpResponse('This sign-in is not linked to an active pilot account. Contact your operator through your established channel.', status=403)
-    login(request, identity.user, backend='django.contrib.auth.backends.ModelBackend')
-    request.session[SESSION_DATA] = sealed
-    request.session[SESSION_SUBJECT] = claims['sub']
-    request.session[SESSION_ID] = claims['sid']
-    request.session[SESSION_STARTED] = time.time()
-    request.session.pop(BROWSER_NONCE, None)
+    with transaction.atomic(durable=True):
+        identity = WorkOSIdentity.objects.select_for_update().filter(pk=identity.pk,
+            client_id=settings.WORKOS_CLIENT_ID, subject=claims['sub'], enabled=True,
+            user__is_active=True).first()
+        if identity is None:
+            return HttpResponse('This sign-in is not linked to an active pilot account.', status=403)
+        login(request, identity.user, backend='django.contrib.auth.backends.ModelBackend')
+        request.session.pop(BROWSER_NONCE, None)
+        request.session.save()
+        credential = WorkOSCredential.objects.create(session_id=request.session.session_key,
+            identity=identity, sealed=sealed, provider_session_id=claims['sid'],
+            expires_at=timezone.now() + timedelta(seconds=settings.SESSION_COOKIE_AGE))
+        request.session[CREDENTIAL] = str(credential.pk)
+        request.session.save()
     return redirect(safe_next(next_path))
 
 
@@ -217,7 +239,11 @@ def callback(request):
 def logout_view(request):
     if settings.AUTH_PROVIDER != 'workos':
         return django_auth.LogoutView.as_view()(request)
-    session_id = request.session.get(SESSION_ID)
+    try:
+        credential = credentials(request).first() if request.user.is_authenticated else None
+    except InvalidLogin:
+        credential = None
+    session_id = credential.provider_session_id if credential else None
     logout(request)
     if isinstance(session_id, str) and session_id.startswith('session_'):
         return redirect(client().user_management.get_logout_url(session_id=session_id))
@@ -245,25 +271,90 @@ class WorkOSSessionMiddleware:
             # A deactivated local account must not regain an old session on reactivation.
             logout(request)
         if settings.AUTH_PROVIDER == 'workos' and request.user.is_authenticated and request.path != '/accounts/logout/':
-            started = request.session.get(SESSION_STARTED)
-            bound = WorkOSIdentity.objects.filter(user=request.user, client_id=settings.WORKOS_CLIENT_ID,
-                subject=request.session.get(SESSION_SUBJECT, ''), enabled=True).exists()
-            if not bound or not isinstance(started, (int, float)) or time.time() - started > settings.SESSION_COOKIE_AGE:
+            try:
+                authenticate_session(request)
+            except (InvalidLogin, jwt.InvalidTokenError, ValueError, KeyError, TypeError):
                 logout(request)
-            else:
-                try:
-                    sealed, claims = check_session(request.session.get(SESSION_DATA, ''))
-                    if claims['sub'] != request.session.get(SESSION_SUBJECT):
-                        raise InvalidLogin()
-                    if sealed != request.session.get(SESSION_DATA):
-                        request.session[SESSION_DATA] = sealed
-                        # Persist rotation even if a later view returns an HTTP 500,
-                        # for which Django ordinarily skips session response saving.
-                        request.session[SESSION_ID] = claims['sid']
-                        request.session.save()
-                    request.session[SESSION_ID] = claims['sid']
-                except (InvalidLogin, jwt.InvalidTokenError, ValueError, KeyError, TypeError):
-                    logout(request)
-                except Exception:
-                    return unavailable()
+            except Exception:
+                return unavailable()
         return self.get_response(request)
+
+
+def credentials(request):
+    """A copied handle cannot select another local account or session's tokens."""
+    try:
+        handle = uuid.UUID(str(request.session.get(CREDENTIAL, '')))
+    except (ValueError, TypeError, AttributeError):
+        raise InvalidLogin() from None
+    return WorkOSCredential.objects.select_related('identity').filter(pk=handle,
+        session_id=request.session.session_key, identity__user_id=request.user.pk,
+        identity__client_id=settings.WORKOS_CLIENT_ID, identity__enabled=True,
+        identity__user__is_active=True, expires_at__gt=timezone.now())
+
+
+def authenticate_session(request):
+    deadline = time.monotonic() + 5
+    while True:
+        credential = credentials(request).first()
+        if credential is None:
+            raise InvalidLogin()
+        if credential.claim:
+            if credential.claimed_at is None or credential.claimed_at < timezone.now() - timedelta(seconds=30):
+                # A dead claimant never makes the old token reusable. Reauthentication
+                # becomes possible after this bounded in-flight exchange window.
+                deleted, _ = WorkOSCredential.objects.filter(pk=credential.pk, claim=credential.claim).delete()
+                if deleted:
+                    raise InvalidLogin()
+                continue
+            if time.monotonic() >= deadline:
+                raise RefreshBusy()
+            time.sleep(0.05)
+            continue
+        claim = uuid.uuid4()
+        consumed = False
+
+        def consume():
+            nonlocal consumed
+            # Never exchange inside a caller's transaction or a mere savepoint.
+            with transaction.atomic(durable=True):
+                current = credentials(request).select_for_update().first()
+                if current is None:
+                    raise InvalidLogin()
+                if current.claim or current.sealed != credential.sealed:
+                    raise SessionChanged()
+                current.sealed = ''
+                current.claim = claim
+                current.claimed_at = timezone.now()
+                current.save(update_fields=['sealed', 'claim', 'claimed_at'])
+            consumed = True
+
+        try:
+            sealed, claims = check_session(credential.sealed, consume)
+            if claims['sub'] != credential.identity.subject:
+                raise InvalidLogin()
+            if consumed:
+                with transaction.atomic(durable=True):
+                    current = credentials(request).select_for_update().filter(claim=claim).first()
+                    if current is None:
+                        raise InvalidLogin()
+                    current.sealed = sealed
+                    current.provider_session_id = claims['sid']
+                    current.claim = None
+                    current.claimed_at = None
+                    current.save(update_fields=['sealed', 'provider_session_id', 'claim', 'claimed_at'])
+            else:
+                # Recheck generation and binding after key verification; another
+                # request may have consumed this credential while we checked it.
+                current = credentials(request).filter(claim__isnull=True, sealed=credential.sealed).exists()
+                if not current:
+                    raise SessionChanged()
+            return
+        except SessionChanged:
+            if time.monotonic() >= deadline:
+                raise RefreshBusy() from None
+        except Exception:
+            if consumed:
+                # Outcome is uncertain after crossing the provider boundary. The
+                # committed claim contains no token even if deletion now fails.
+                WorkOSCredential.objects.filter(pk=credential.pk, claim=claim).delete()
+            raise

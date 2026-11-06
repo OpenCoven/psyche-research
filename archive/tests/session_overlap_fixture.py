@@ -8,9 +8,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.db import connections
 from django.test import Client, override_settings
+from django.utils import timezone
+from datetime import timedelta
 
 from archive import workos_auth as auth
-from archive.models import WorkOSIdentity
+from archive.models import WorkOSIdentity, WorkOSCredential
 
 
 def run_callback_commit_boundary():
@@ -65,9 +67,10 @@ def run_session_overlap():
     browser = Client()
     browser.force_login(user)
     stored = browser.session
-    stored.update({auth.SESSION_DATA: 'synthetic-once-only-token',
-                   auth.SESSION_SUBJECT: 'user_synthetic', auth.SESSION_ID: 'session_synthetic',
-                   auth.SESSION_STARTED: time.time()})
+    credential = WorkOSCredential.objects.create(session_id=stored.session_key,
+        identity=WorkOSIdentity.objects.get(user=user), sealed='synthetic-once-only-token',
+        provider_session_id='session_synthetic', expires_at=timezone.now()+timedelta(hours=8))
+    stored[auth.CREDENTIAL] = str(credential.pk)
     stored.save()
     key = stored.session_key
     config = dict(connections.databases['default'])
@@ -75,8 +78,9 @@ def run_session_overlap():
     counter_lock = Lock()
     calls = []
 
-    def check(sealed):
+    def check(sealed, consume_refresh):
         if sealed == 'synthetic-once-only-token':
+            consume_refresh()
             with counter_lock:
                 calls.append(sealed)
                 if len(calls) > 1:
@@ -118,5 +122,68 @@ def run_session_overlap():
     assert statuses == [200, 200], 'Overlapping requests lost authenticated access: ' + repr(statuses)
     assert len(calls) == 1, 'A one-use refresh token was exchanged more than once'
     row = Session.objects.get(session_key=key)
-    assert row.get_decoded()[auth.SESSION_DATA] == 'synthetic-replacement-token'
+    credential.refresh_from_db()
+    assert credential.sealed == 'synthetic-replacement-token'
+    assert auth.SESSION_DATA not in row.get_decoded()
+
+
+def run_durable_refresh_boundary():
+    """Real independent commits, view rollback and stale saves on either backend."""
+    from django.contrib.sessions.backends.db import SessionStore
+    from django.db import transaction
+    from django.http import HttpResponse
+    from archive.middleware import WorkOSDatabaseSessionMiddleware
+    from django.test import RequestFactory
+
+    user = get_user_model().objects.create_user('synthetic-refresh-durability')
+    identity = WorkOSIdentity.objects.create(user=user, client_id='client_synthetic', subject='user_synthetic')
+    browser = Client()
+    browser.force_login(user)
+    stored = browser.session
+    credential = WorkOSCredential.objects.create(session_id=stored.session_key, identity=identity,
+        sealed='synthetic-old-token', provider_session_id='session_synthetic',
+        expires_at=timezone.now()+timedelta(hours=8))
+    stored[auth.CREDENTIAL] = str(credential.pk)
+    stored.save()
+    stale = SessionStore(session_key=stored.session_key)
+    dict(stale.items())
+    exchanges = []
+
+    def check(sealed, consume):
+        if sealed == 'synthetic-old-token':
+            consume()
+            probe = connections['default'].copy(alias='synthetic-refresh-commit-probe')
+            try:
+                with probe.cursor() as cursor:
+                    cursor.execute('SELECT sealed, claim FROM archive_workoscredential WHERE session_id=%s',
+                                   [stored.session_key])
+                    persisted = cursor.fetchone()
+                assert persisted[0] == '' and persisted[1], 'Provider exchange preceded durable consumption'
+            finally:
+                probe.close()
+            exchanges.append(sealed)
+        else:
+            assert sealed == 'synthetic-replacement-token'
+        return 'synthetic-replacement-token', {'sub': 'user_synthetic', 'sid': 'session_synthetic'}
+
+    def failing_view(request):
+        with transaction.atomic():
+            get_user_model().objects.create_user('synthetic-rolled-back-user')
+            transaction.set_rollback(True)
+        return HttpResponse(status=500)
+
+    with override_settings(AUTH_PROVIDER='workos', WORKOS_CLIENT_ID='client_synthetic'), \
+            patch('archive.workos_auth.check_session', side_effect=check):
+        request = RequestFactory().get('/workspace/')
+        request.COOKIES['sessionid'] = stored.session_key
+        request.user = user
+        middleware = WorkOSDatabaseSessionMiddleware(auth.WorkOSSessionMiddleware(failing_view))
+        assert middleware(request).status_code == 500
+        assert not get_user_model().objects.filter(username='synthetic-rolled-back-user').exists()
+        stale['synthetic'] = 'stale ordinary response'
+        stale.save()
+        assert browser.get('/workspace/').status_code == 200
+    credential.refresh_from_db()
+    assert credential.sealed == 'synthetic-replacement-token' and credential.claim is None
+    assert exchanges == ['synthetic-old-token'], 'Consumed credential was exchanged again'
 
