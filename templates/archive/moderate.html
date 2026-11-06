@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Moderation · {{ submission.title }} · Coven Research{% endblock %}
+{% block title %}Moderation · {{ submission.title }} · Psyche Research{% endblock %}
 {% block content %}
 <div class="page-width section-space"><a class="breadcrumb" href="{% url 'queue' %}">← Private moderation queue</a><header class="paper-heading"><p class="eyebrow">EXACT SUBMITTED VERSION · PRIVATE</p><h1>{{ snapshot.title|default:submission.title }}</h1><p class="paper-byline">{{ snapshot.byline|default:submission.byline }}</p></header><div class="paper-layout"><article class="paper-content">{% include 'archive/_snapshot.html' %}{% include 'archive/_decisions.html' %}{% include 'archive/_appeals.html' %}</article><aside class="paper-sidebar"><section class="sidebar-panel"><p class="eyebrow">HUMAN DECISION</p><h2>Record what was checked.</h2><p>Explain completeness, rights, privacy, safety, or scope concerns. Check conflicts before deciding. You cannot approve your own submission.</p><form class="stack-form" method="post">{% csrf_token %}{% include 'archive/_form.html' %}<button class="button" type="submit">Record decision</button></form><p class="small muted">Publishing makes the frozen submission public. This is a moderation action and must not be described as scientific peer review.</p></section></aside></div></div>
 {% endblock %}

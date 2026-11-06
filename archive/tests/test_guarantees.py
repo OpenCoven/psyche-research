@@ -11,6 +11,7 @@ import textwrap
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group
 from django.core.exceptions import ValidationError
@@ -464,6 +465,28 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
     def setUp(self):
         self.accounts()
 
+    def test_incomplete_submission_links_errors_and_retains_unsaved_input_privately(self):
+        submission = self.draft()
+        self.client.force_login(self.author)
+        title = 'SYNTHETIC retained <draft> title'
+        response = self.client.post(reverse('edit', args=[submission.pk]), urlencode({
+            'title': title, 'kind': Submission.Kind.EXPERIMENT,
+            'revision': submission.revision, 'action': 'submit',
+        }), content_type='application/x-www-form-urlencoded')
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'aria-label="Form errors"', status_code=400)
+        for name in ('byline', 'abstract', 'rights_confirmed', 'privacy_confirmed'):
+            with self.subTest(field=name):
+                self.assertContains(response, f'href="#id_{name}"', status_code=400)
+                self.assertContains(response, f'id="id_{name}"', status_code=400)
+        self.assertContains(response, 'value="SYNTHETIC retained &lt;draft&gt; title"', status_code=400)
+        self.assertIn('no-store', response.headers['Cache-Control'])
+        submission.refresh_from_db()
+        self.assertEqual(submission.title, '')
+        self.assertEqual(submission.revision, 0)
+        self.assertEqual(submission.state, Submission.State.DRAFT)
+        self.assertFalse(Version.objects.exists())
+
     def test_anonymous_public_routes_never_reveal_private_sentinels(self):
         secret = 'SYNTHETIC-PRIVATE-MANUSCRIPT-73ad2'
         submission = self.submitted(data=content(title=secret, abstract=secret, artifacts='https://example.org/' + secret))
@@ -530,6 +553,21 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
         self.assertEqual(Submission.objects.count(), 0)
         self.assertEqual(client.get(reverse('logout')).status_code, 405)
 
+    def test_browser_login_keeps_csrf_origin_checks_and_query_private_referrer_policy(self):
+        browser = Client(enforce_csrf_checks=True)
+        page = browser.get(reverse('login'), secure=True)
+        self.assertEqual(page['Referrer-Policy'], 'strict-origin')
+        data = urlencode({'username': self.author.username, 'password': 'synthetic-password-12345',
+                          'csrfmiddlewaretoken': browser.cookies['csrftoken'].value})
+        for origin in ['null', 'https://attacker.invalid']:
+            response = browser.post(reverse('login'), data, secure=True,
+                content_type='application/x-www-form-urlencoded', HTTP_ORIGIN=origin)
+            self.assertEqual(response.status_code, 403)
+        response = browser.post(reverse('login'), data, secure=True,
+            content_type='application/x-www-form-urlencoded', HTTP_ORIGIN='https://testserver')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(browser.get(reverse('dashboard'), secure=True).status_code, 200)
+
     def test_database_contention_returns_controlled_retry_without_partial_draft(self):
         self.client.force_login(self.author)
         self.client.raise_request_exception = False
@@ -552,7 +590,7 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
     def test_oversized_body_rejected_before_draft_can_change(self):
         submission = self.draft()
         self.client.force_login(self.author)
-        response = self.client.post(reverse('edit', args=[submission.pk]), 'methods=' + 'x' * (97 * 1024), content_type='application/x-www-form-urlencoded')
+        response = self.client.post(reverse('edit', args=[submission.pk]), 'methods=' + 'x' * (settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 1), content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 413)
         submission.refresh_from_db()
         self.assertEqual(submission.revision, 0)
@@ -589,6 +627,34 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertNotContains(response, secret)
         self.assertEqual(self.client.get(reverse('version', args=[version.work_id, 2])).status_code, 404)
+
+    def test_older_version_notice_tracks_only_published_corrections_and_respects_withdrawal(self):
+        _, first = self.published()
+        exact_export = self.client.get(reverse('export_version', args=[first.work_id, 1])).json()
+        notice = 'A newer version is available.'
+        for number in (2, 3):
+            correction = self.draft(work_id=first.work_id)
+            services.save_submission(self.author, correction.pk,
+                content(title=f'SYNTHETIC correction {number}', change_note=f'Synthetic correction {number}.'),
+                correction.revision, submit=True)
+            if number == 2:
+                self.assertNotContains(self.client.get(reverse('version', args=[first.work_id, 1])), notice)
+            correction.refresh_from_db()
+            services.decide(self.moderator, correction.pk, 'publish', 'Synthetic correction moderation.',
+                correction.revision, conflicts='None; synthetic fixture')
+            for older_number in range(1, number):
+                older = self.client.get(reverse('version', args=[first.work_id, older_number]))
+                self.assertContains(older, notice)
+                latest_url = reverse('version', args=[first.work_id, number])
+                self.assertContains(older, f'<a href="{latest_url}">Read version {number}</a>', html=True)
+            self.assertNotContains(self.client.get(reverse('version', args=[first.work_id, number])), notice)
+            self.assertEqual(self.client.get(reverse('export_version', args=[first.work_id, 1])).json(), exact_export)
+        services.withdraw(self.author, first.work_id, 'Synthetic all-version withdrawal.')
+        for number in (1, 2, 3):
+            tombstone = self.client.get(reverse('version', args=[first.work_id, number]))
+            self.assertContains(tombstone, 'This research has been withdrawn.')
+            self.assertNotContains(tombstone, notice)
+            self.assertNotContains(tombstone, 'SYNTHETIC correction')
 
     def test_withdrawn_body_absent_from_latest_versions_search_and_export(self):
         sentinel = 'SYNTHETIC-WITHDRAWN-PRIVATE-BODY-1efc0'

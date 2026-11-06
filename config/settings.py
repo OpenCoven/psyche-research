@@ -31,9 +31,10 @@ else:
 INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
     'django.contrib.messages', 'django.contrib.staticfiles', 'archive']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'archive.middleware.BoundaryMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'archive.middleware.WriteLimitMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
+    'archive.middleware.WorkOSDatabaseSessionMiddleware', 'django.middleware.common.CommonMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'archive.workos_auth.WorkOSSessionMiddleware',
+    'archive.middleware.WriteLimitMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'config.urls'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'],
@@ -49,6 +50,34 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+if AUTH_PROVIDER not in {'local', 'workos'}:
+    raise ImproperlyConfigured('AUTH_PROVIDER must be local or workos.')
+WORKOS_API_KEY = os.environ.get('WORKOS_API_KEY', '')
+WORKOS_CLIENT_ID = os.environ.get('WORKOS_CLIENT_ID', '')
+WORKOS_REDIRECT_URI = os.environ.get('WORKOS_REDIRECT_URI', '')
+WORKOS_ISSUER = os.environ.get('WORKOS_ISSUER', '')
+WORKOS_COOKIE_PASSWORD = os.environ.get('WORKOS_COOKIE_PASSWORD', '')
+if AUTH_PROVIDER == 'workos':
+    from urllib.parse import urlsplit
+    from cryptography.fernet import Fernet
+    import re
+    try:
+        callback = urlsplit(WORKOS_REDIRECT_URI)
+        issuer = urlsplit(WORKOS_ISSUER)
+        Fernet(WORKOS_COOKIE_PASSWORD.encode())
+        local_callback = LOCAL_DEVELOPMENT and callback.hostname in {'localhost', '127.0.0.1', '::1'}
+        if (not WORKOS_API_KEY.startswith('sk_') or not re.fullmatch(r'client_[A-Za-z0-9]{1,120}', WORKOS_CLIENT_ID)
+            or WORKOS_COOKIE_PASSWORD == SECRET_KEY
+            or callback.scheme not in ({'http', 'https'} if local_callback else {'https'})
+            or callback.hostname not in ALLOWED_HOSTS or callback.username or callback.password
+            or callback.path != '/accounts/workos/callback/' or callback.query or callback.fragment
+            or callback.port == 0 or issuer.port == 0
+            or issuer.scheme != 'https' or not issuer.hostname or issuer.username or issuer.password
+            or issuer.query or issuer.fragment):
+            raise ValueError()
+    except (ValueError, TypeError, UnicodeError):
+        raise ImproperlyConfigured('WorkOS requires a server API key, client ID, distinct Fernet session key, exact allowed callback and configured HTTPS token issuer. Secret values are not logged.') from None
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -68,10 +97,17 @@ SECURE_HSTS_SECONDS = 31536000 if not LOCAL_DEVELOPMENT else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = 'no-referrer'
+SECURE_REFERRER_POLICY = 'strict-origin'
 X_FRAME_OPTIONS = 'DENY'
 # TLS terminates in WSGI or a separately reviewed trusted proxy. Never trust forwarded headers by default.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 96 * 1024
+# The submission fields allow 46,600 UTF-16 units in total. A valid URL-encoded
+# form needs at most nine bytes per unit, including CRLF textarea serialization,
+# plus field names, choices, CSRF and revision. Keep a hard pre-parse bound.
+DEFAULT_FORM_MAX_BYTES = 96 * 1024
+SUBMISSION_FORM_MAX_BYTES = 512 * 1024
+# Django's parser needs the absolute ceiling. Middleware restricts the larger
+# allowance to authenticated editor POSTs before CSRF or form parsing.
+DATA_UPLOAD_MAX_MEMORY_SIZE = SUBMISSION_FORM_MAX_BYTES
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 40
 FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'

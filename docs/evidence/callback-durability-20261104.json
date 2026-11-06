@@ -1,0 +1,141 @@
+{
+  "implementation_sha": "4e94bd9164bf4bffda8abae7c3ebba032c9f0f0a",
+  "implementation_tree": "3176e434c6dee7805dd68900c61ecb49310dbbaa",
+  "source_sha256": {
+    "archive/middleware.py": "5781494994d7ccbcd6f17f30ee14013116f9cac4462828dacc9d15bd43da1065",
+    "archive/workos_auth.py": "ffa911fe587a7de203d6053aa2827894079b3ff0e8b7d9cf407e0df1d11b9cf8",
+    "archive/tests/session_overlap_fixture.py": "35f8b749f4bdad14ceb6703d0b6404c7b5a0fdfb4e03a22a6552ffddfc36bb2e",
+    "archive/tests/test_operations.py": "d61fdf5dc6526f4041b399672785810871827146a77bcd86c70be7f3e840b52c",
+    "archive/tests/test_postgres.py": "6e4258fa9148924f37340ba7961da8cb4fba048aefe50b64e6c1920c9788cd42",
+    "archive/tests/test_workos_auth.py": "e4a47144f07f936c0a5278322dc4360ce4c34b51f6ac21bcb46375828efd66d9",
+    "config/settings.py": "bf3b2f5c33d643522980b30c30e74826ff22eefa8602e47ed80862198b16953e",
+    "vercel.json": "749c0d1d1d87ff621e87c1c5acc420893b6ee6723ad9d279293ea0a187a40d52",
+    "requirements.txt": "3b3dca85242e812c4f5de8034b4bc203e861060d731748913d56e8d215b94bb7"
+  },
+  "first_failure": {
+    "command": "manage.py test archive.tests.test_operations.OperationalDrill.test_workos_callback_consumption_commits_before_provider_exchange --verbosity 1",
+    "exit": 1,
+    "result": "Independent connection observed unconsumed callback state: [1]"
+  },
+  "verification": [
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "test",
+        "archive.tests.test_operations.OperationalDrill.test_workos_callback_consumption_commits_before_provider_exchange",
+        "archive.tests.test_operations.OperationalDrill.test_overlapping_workos_requests_preserve_rotated_session_in_real_file_database",
+        "archive.tests.test_workos_auth",
+        "--verbosity",
+        "1"
+      ],
+      "exit": 0,
+      "seconds": 20.23,
+      "summary": [
+        "Ran 24 tests in 16.548s",
+        "OK",
+        "System check identified no issues (0 silenced)."
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "test",
+        "--verbosity",
+        "2"
+      ],
+      "exit": 0,
+      "seconds": 33.342,
+      "summary": [
+        "Ran 109 tests in 30.358s",
+        "OK (skipped=8)",
+        "System check identified no issues (0 silenced)."
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "makemigrations",
+        "--check",
+        "--dry-run"
+      ],
+      "exit": 0,
+      "seconds": 0.722,
+      "summary": [
+        "No changes detected"
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "check",
+        "--fail-level",
+        "WARNING"
+      ],
+      "exit": 0,
+      "seconds": 0.81,
+      "summary": [
+        "System check identified no issues (0 silenced)."
+      ]
+    },
+    {
+      "command": "ephemeral-key production settings check",
+      "exit": 0,
+      "output": "System check identified no issues (0 silenced).\n"
+    }
+  ],
+  "postgres_build": {
+    "version": "16.15",
+    "source_url": "https://ftp.postgresql.org/pub/source/v16.15/postgresql-16.15.tar.bz2",
+    "bytes": 25181309,
+    "sha256": "c1575341fa7bd40f5274ea465b34390f4dc64cdd0770af327005caaeb9f6b7ed",
+    "vendor_checksum_matched": true,
+    "first_download_exit": 6,
+    "first_download_error": "Could not resolve host: ftp.postgresql.org",
+    "retry": "command-scoped curl --resolve using fresh DNS-over-HTTPS answer; normal TLS verification retained",
+    "configure_flags": [
+      "--without-icu",
+      "--without-readline",
+      "--without-zlib",
+      "--without-openssl"
+    ],
+    "configure_exit": 0,
+    "make_exit": 0,
+    "install_exit": 0,
+    "initdb_exit": 1,
+    "initdb_error": "could not look up effective user ID 501: user does not exist",
+    "server_started": false,
+    "database_created": false
+  },
+  "browser": {
+    "apps": 0,
+    "browsers": 0,
+    "errors": [
+      "Native apps: Error: Sky Computer Use service startup request failed",
+      "Browsers: Error: The browser access host is unavailable"
+    ]
+  },
+  "remote": {
+    "main": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+    "latest_pr": 19,
+    "latest_pr_sha": "2abdebcc31209782f3dccd23dfbe84f85d787612",
+    "latest_ci": 41909906944,
+    "latest_ci_status": "completed/success",
+    "new_head_published": false
+  },
+  "unrun": [
+    "live PostgreSQL current source",
+    "independent review of qualification repairs",
+    "new-head hosted CI",
+    "live WorkOS",
+    "rendered accessibility",
+    "human screen reader",
+    "protected staging",
+    "provider recovery",
+    "encrypted off-host restoration",
+    "human operating acceptance"
+  ]
+}

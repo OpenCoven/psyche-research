@@ -2,11 +2,38 @@ import ipaddress
 from urllib.parse import urlsplit
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxLengthValidator
 from .models import Submission, CONTENT_FIELDS, Capacity
+
+
+class BrowserMaxLengthValidator(MaxLengthValidator):
+    """HTML maxlength uses UTF-16 units, including for non-BMP writing scripts."""
+
+    def clean(self, value):
+        return len(value) + sum(ord(character) > 0xffff for character in value)
+
+
+class SubmissionTextField(forms.CharField):
+    """Normalize browser line endings before validating or storing new input."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.validators = [BrowserMaxLengthValidator(validator.limit_value)
+                           if isinstance(validator, MaxLengthValidator) else validator
+                           for validator in self.validators]
+        if self.max_length is not None:
+            self.help_text = f'{self.help_text} At most {self.max_length:,} characters.'.strip()
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        return value.replace('\r\n', '\n').replace('\r', '\n')
+
+# Shown on the public policies page; keep the enforced bound and the published description identical.
+MAX_ARTIFACT_LINKS = 8
 
 def validate_artifacts(text):
     urls = [x.strip() for x in text.splitlines() if x.strip()]
-    if len(urls) > 8:
+    if len(urls) > MAX_ARTIFACT_LINKS:
         raise ValidationError('Use at most eight public artifact links.')
     for url in urls:
         try:
@@ -33,6 +60,8 @@ class SubmissionForm(forms.ModelForm):
     class Meta:
         model = Submission
         fields = list(CONTENT_FIELDS) + ['rights_confirmed','privacy_confirmed']
+        field_classes = {name: SubmissionTextField for name in CONTENT_FIELDS
+                         if name not in ('kind', 'license')}
         help_texts = {
             'byline': 'Names shown publicly on publication. Obtain every named contributor’s consent; affiliation is optional.',
             'methods': 'Describe what you did, evaluation conditions, and enough detail to inspect or replicate it. Plain text or public methods links.',

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Withdraw a record · Coven Research{% endblock %}
+{% block title %}Withdraw a record · Psyche Research{% endblock %}
 {% block content %}
 <div class="page-width section-space narrow"><a class="breadcrumb" href="{% url 'work' work.id %}">← Public record</a><header class="page-heading"><p class="eyebrow">CORRECTION AND WITHDRAWAL</p><h1>Withdraw this research.</h1><p class="lede">A withdrawal removes manuscript content from public version pages, discovery, and exports. A stable tombstone and version history remain.</p></header><div class="notice">The reason you enter here will be public. Describe the issue without repeating private, sensitive, or harmful material. For a private safety concern, use the record’s report form.</div><form class="stack-form" method="post">{% csrf_token %}{% include 'archive/_form.html' %}<button class="button button-danger" type="submit">Record withdrawal</button></form></div>
 {% endblock %}

@@ -2,6 +2,8 @@
 
 Status: hosting target selected by the user; deployment, project creation, database provisioning, purchases, new persistent credentials, real intake, invitations, and launch remain unapproved. Recorded 2026-11-04. This packet keeps the existing Django application and its server-rendered workflow. It does not authorize a platform rewrite or claim a Vercel deployment exists.
 
+[STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md) supplies the current source/CI checkpoint, a concrete but unapproved staging proposal, provider/protection recommendations, execution sheets, cost/recovery objectives and missing target/operator decisions. Use it to resolve the actual identifiers and prepare one consolidated staging request; this document remains the environment and operational contract.
+
 ## Target architecture
 
 Use the repository's `manage.py`, `config.wsgi.application`, templates, static files, domain services, and migrations. The Vercel-specific entrypoint is `config.wsgi:application` in `[tool.vercel]`; no frontend framework or service split is needed. Vercel's current Django guide describes `manage.py` detection, WSGI entrypoint discovery, automatic static collection, and environment-based database configuration. See [Vercel Django documentation](https://vercel.com/docs/frameworks/full-stack/django), checked 2026-11-04. These documented capabilities are not evidence that this repository's build has passed on Vercel.

@@ -1,0 +1,143 @@
+{
+  "approval": "User explicitly approved proceeding with the reviewed source publication and CI on 2026-11-06.",
+  "initial_head": "3f31d0e44f84c7f10a0755c786ee1a191f4b6bdf",
+  "initial_tree": "ee0f0584f289e29732c9db7a6ce8f1f7fed26846",
+  "pr": 25,
+  "initial_ci": {
+    "run_id": 42265055811,
+    "application": {
+      "job_id": 128054686246,
+      "tests": 157,
+      "seconds": 130.152,
+      "skips": 10,
+      "executed": 147
+    },
+    "postgres": {
+      "job_id": 128054685743,
+      "tests": 35,
+      "seconds": 42.559,
+      "skips": 0,
+      "version": "16.15"
+    },
+    "checkout_sha_verified": true
+  },
+  "first_publication_failures": [
+    "Direct gh api DNS failure",
+    "Native gh API through CONNECT failed x509 OSStatus -26276 with default verification; not weakened",
+    "CLI token scopes gist/read:org/repo lack workflow scope; isolated create-tree probes showed workflow entry caused404 while ordinary entries succeeded"
+  ],
+  "successful_publication": "Existing GitHub connection created exact workflow tree; Python REST reproduced exact local commit; existing connection created new branch and draft PR with no credential changes.",
+  "browser_harness_review": {
+    "findings_resolved": [
+      "explicit isolated profile cleanup",
+      "bounded process-group cleanup",
+      "Node22+ runtime guard"
+    ],
+    "application_source_changed": false,
+    "scope": "Native Chromium input counts and full synthetic form save against isolated loopback-only app; not human accessibility acceptance."
+  },
+  "qualified_head": "1409d087adb41ffd877d3a804f75d82baafaf954",
+  "qualified_tree": "ff9e2bdecf8739bc2b05d317f159fc65a79f17a7",
+  "run_id": 42266162631,
+  "run_url": "https://github.com/OpenCoven/psyche-research/actions/runs/42266162631",
+  "jobs": [
+    {
+      "name": "guarantees",
+      "job_id": 128058511143,
+      "checkout_sha": "1409d087adb41ffd877d3a804f75d82baafaf954",
+      "conclusion": "success",
+      "log_url": "https://github.com/OpenCoven/psyche-research/actions/runs/42266162631/job/128058511143",
+      "excerpts": [
+        "2026-11-06T17:58:51.9978063Z Ran 157 tests in 130.697s",
+        "2026-11-06T17:58:51.9978419Z OK (skipped=10)"
+      ]
+    },
+    {
+      "name": "postgres-guarantees",
+      "job_id": 128058511433,
+      "checkout_sha": "1409d087adb41ffd877d3a804f75d82baafaf954",
+      "conclusion": "success",
+      "log_url": "https://github.com/OpenCoven/psyche-research/actions/runs/42266162631/job/128058511433",
+      "excerpts": [
+        "2026-11-06T17:57:30.9219125Z Ran 35 tests in 41.713s",
+        "2026-11-06T17:57:30.9219416Z OK",
+        "2026-11-06T17:57:32.4439028Z  2026-11-06 17:56:29.429 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+        "2026-11-06T17:57:32.4452910Z  waiting for server to start....2026-11-06 17:56:29.123 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+      ]
+    },
+    {
+      "name": "browser-input-contract",
+      "job_id": 128058511701,
+      "checkout_sha": "1409d087adb41ffd877d3a804f75d82baafaf954",
+      "conclusion": "success",
+      "log_url": "https://github.com/OpenCoven/psyche-research/actions/runs/42266162631/job/128058511701",
+      "excerpts": [
+        "2026-11-06T17:56:41.8536367Z {\"browser\":\"Chrome/156.0.8078.79\",\"node\":\"v22.23.4\",\"sandbox_disable_flag\":false,\"native_methods_units\":10000,\"native_emoji_units\":5000,\"extra_input_refused\":true,\"field_limits\":{\"title\":200,\"byline\":400,\"abstract\":3000,\"methods\":10000,\"claims\":10000,\"limitations\":5000,\"artifacts\":8000,\"provenance\":5000,\"ai_disclosure\":3000,\"change_note\":2000},\"saved_revision\":1,\"request_bytes\":417803,\"browser_serialized_crlf\":true,\"non_loopback_fetches_blocked\":true}",
+        "2026-11-06T17:56:44.9194062Z {\"server_revision\": 1, \"all_field_limits_saved\": true, \"stored_newlines\": \"LF\", \"intake\": \"paused\", \"public_versions\": 0}"
+      ]
+    }
+  ],
+  "native_observations": [
+    {
+      "browser": "Chrome/156.0.8078.79",
+      "node": "v22.23.4",
+      "sandbox_disable_flag": false,
+      "native_methods_units": 10000,
+      "native_emoji_units": 5000,
+      "extra_input_refused": true,
+      "field_limits": {
+        "title": 200,
+        "byline": 400,
+        "abstract": 3000,
+        "methods": 10000,
+        "claims": 10000,
+        "limitations": 5000,
+        "artifacts": 8000,
+        "provenance": 5000,
+        "ai_disclosure": 3000,
+        "change_note": 2000
+      },
+      "saved_revision": 1,
+      "request_bytes": 417803,
+      "browser_serialized_crlf": true,
+      "non_loopback_fetches_blocked": true
+    },
+    {
+      "server_revision": 1,
+      "all_field_limits_saved": true,
+      "stored_newlines": "LF",
+      "intake": "paused",
+      "public_versions": 0
+    }
+  ],
+  "application": {
+    "discovered": 157,
+    "seconds": 130.697,
+    "postgres_skips": 10,
+    "executed": 147
+  },
+  "postgres": {
+    "tests": 35,
+    "seconds": 41.713,
+    "skips": 0,
+    "version": "16.15"
+  },
+  "review": {
+    "abuse_probes": 8,
+    "abuse_probe_seconds": 2.886,
+    "unresolved_findings": 0,
+    "browser_harness_findings_resolved": 3
+  },
+  "source_delivery": {
+    "pr": 25,
+    "url": "https://github.com/OpenCoven/psyche-research/pull/25",
+    "draft": true,
+    "merged": false
+  },
+  "acceptance_limits": [
+    "One hosted Chrome engine verifies native input/count/encoding on a synthetic loopback-only app.",
+    "Human keyboard/screen-reader/zoom/cross-browser acceptance is unrun.",
+    "Actual WorkOS, protected Vercel application/provider recovery, policy adoption and operating acceptance remain separate.",
+    "Intake stays paused; no merge, deployment or launch authority inferred."
+  ]
+}
