@@ -94,5 +94,19 @@
       "run": 42290070959,
       "finding": "Actual editor heading overflow: viewport 1440, client 1425, scroll 6084."
     }
-  ]
+  ],
+  "focus_navigation_follow_up": {
+    "source": "cac7adcd53e563dda22004bf4f780528b23ab09d",
+    "failed_run": 42291211375,
+    "failed_job": 128144804209,
+    "failed_source": "277bf77b34992299aacdb86c9d98c6488350ccb3",
+    "finding": "Immediate activeElement assertion ran before native error-anchor focus navigation completed.",
+    "repair": "Bounded wait for the exact target focus; native Tab/Enter and visible outline assertions retained. No retry of a failed workflow or forced DOM focus.",
+    "source_hashes": {
+      "static/archive/site.css": "6c807325f2e843f7b47f89cc3a32b8229678d541581e93ec00fe19936668d76e",
+      "archive/tests/browser_input_limits.mjs": "155fd368afa5b635ac8b2d8ab2a59d346f3b3a1873437e157c162406cbefe177",
+      "archive/tests/run_browser_input_limits.py": "5caf68f6258c84f181c9d7b8b650d864557d6f652fdf2ced01d36c6f5baec0af"
+    },
+    "verification": "Require latest exact-head results on PR #29 before integration."
+  }
 }
