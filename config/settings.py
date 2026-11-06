@@ -32,9 +32,9 @@ INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'django.
     'django.contrib.messages', 'django.contrib.staticfiles', 'archive']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'archive.middleware.BoundaryMiddleware',
     'archive.middleware.WorkOSDatabaseSessionMiddleware', 'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'archive.workos_auth.WorkOSSessionMiddleware',
-    'archive.middleware.WriteLimitMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
+    'archive.middleware.WriteLimitMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'config.urls'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'],
@@ -100,7 +100,14 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'strict-origin'
 X_FRAME_OPTIONS = 'DENY'
 # TLS terminates in WSGI or a separately reviewed trusted proxy. Never trust forwarded headers by default.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 96 * 1024
+# The submission fields allow 46,600 UTF-16 units in total. A valid URL-encoded
+# form needs at most nine bytes per unit, including CRLF textarea serialization,
+# plus field names, choices, CSRF and revision. Keep a hard pre-parse bound.
+DEFAULT_FORM_MAX_BYTES = 96 * 1024
+SUBMISSION_FORM_MAX_BYTES = 512 * 1024
+# Django's parser needs the absolute ceiling. Middleware restricts the larger
+# allowance to authenticated editor POSTs before CSRF or form parsing.
+DATA_UPLOAD_MAX_MEMORY_SIZE = SUBMISSION_FORM_MAX_BYTES
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 40
 FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'

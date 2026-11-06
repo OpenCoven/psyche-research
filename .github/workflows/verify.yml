@@ -75,5 +75,5 @@ jobs:
       - name: Live PostgreSQL guarantees and logical recovery drill
         env:
           POSTGRES_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
-        run: python manage.py test archive.tests.test_postgres --verbosity 2
+        run: python manage.py test archive.tests.test_postgres archive.tests.test_input_limits archive.tests.test_governance --verbosity 2
       - run: python manage.py verify_archive

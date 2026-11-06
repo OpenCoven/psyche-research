@@ -11,6 +11,7 @@ import textwrap
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group
 from django.core.exceptions import ValidationError
@@ -589,7 +590,7 @@ class HTTPBoundaryGuarantees(Accounts, TestCase):
     def test_oversized_body_rejected_before_draft_can_change(self):
         submission = self.draft()
         self.client.force_login(self.author)
-        response = self.client.post(reverse('edit', args=[submission.pk]), 'methods=' + 'x' * (97 * 1024), content_type='application/x-www-form-urlencoded')
+        response = self.client.post(reverse('edit', args=[submission.pk]), 'methods=' + 'x' * (settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 1), content_type='application/x-www-form-urlencoded')
         self.assertEqual(response.status_code, 413)
         submission.refresh_from_db()
         self.assertEqual(submission.revision, 0)

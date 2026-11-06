@@ -12,6 +12,7 @@ from django.contrib.sessions.models import Session
 from django.http import HttpResponse
 from django.core.exceptions import RequestDataTooBig, TooManyFieldsSent
 from django.utils import timezone
+from django.urls import resolve, Resolver404
 from .models import RateBucket
 
 
@@ -61,36 +62,66 @@ class BoundaryMiddleware:
         return response
 
 class WriteLimitMiddleware:
-    def __init__(self,get_response):
-        self.get_response=get_response
-    def __call__(self,request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.method in ('POST', 'PUT', 'PATCH'):
+            # Authentication is established, but no form body has been read.
+            # Resolve exactly: a workspace prefix must not grant an allowance.
+            try:
+                match = resolve(request.path_info, urlconf=getattr(request, 'urlconf', None))
+            except Resolver404:
+                match = None
+            editor = (request.method == 'POST' and request.user.is_authenticated
+                      and match is not None and match.view_name == 'edit')
+            limit = settings.SUBMISSION_FORM_MAX_BYTES if editor else settings.DEFAULT_FORM_MAX_BYTES
+            try:
+                size = int(request.META.get('CONTENT_LENGTH') or 0)
+            except ValueError:
+                size = -1
+            if size < 0 or size > limit:
+                return HttpResponse('Request body exceeds the intake limit.', status=413)
         return self.get_response(request)
-    def process_view(self,request,view_func,view_args,view_kwargs):
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
         external_login = (settings.AUTH_PROVIDER == 'workos' and request.method == 'GET'
                           and request.path == '/accounts/workos/initiate/')
         if request.method != 'POST' and not external_login:
             return None
-        now=timezone.now()
-        # Never trust user-supplied X-Forwarded-For. A deployment proxy needs explicit separate review.
-        principal='user:'+str(request.user.pk) if request.user.is_authenticated else 'ip:'+request.META.get('REMOTE_ADDR','unknown')
-        principals=[(principal,60 if request.user.is_authenticated else 10)]
+        # Charge the primary principal before CSRF or login username parsing.
+        # Never trust user-supplied X-Forwarded-For.
+        principal = ('user:' + str(request.user.pk) if request.user.is_authenticated
+                     else 'ip:' + request.META.get('REMOTE_ADDR', 'unknown'))
+        result = self.charge(principal, 60 if request.user.is_authenticated else 10)
+        if result is not None:
+            return result
         if request.path == '/accounts/login/':
-            principals.append(('login:'+request.POST.get('username','')[:150].casefold(),10))
+            try:
+                username = request.POST.get('username', '')[:150].casefold()
+            except (RequestDataTooBig, TooManyFieldsSent):
+                return HttpResponse('Request exceeds the intake limit.', status=413)
+            return self.charge('login:' + username, 10)
+        return None
+
+    @staticmethod
+    def charge(principal, limit):
+        now = timezone.now()
         try:
             with transaction.atomic():
-                for principal,limit in principals:
-                    raw=f'{int(time.time())//60}:{principal}'.encode()
-                    key=hmac.new(settings.SECRET_KEY.encode(),raw,hashlib.sha256).hexdigest()
-                    bucket,_=RateBucket.objects.select_for_update().get_or_create(key=key,defaults={'expires_at':now+timedelta(minutes=2)})
-                    if bucket.count>=limit:
-                        result=HttpResponse('Too many attempts. Please retry in one minute.',status=429)
-                        result['Retry-After']='60'
-                        return result
-                    bucket.count+=1
-                    bucket.save(update_fields=['count'])
+                raw = f'{int(time.time())//60}:{principal}'.encode()
+                key = hmac.new(settings.SECRET_KEY.encode(), raw, hashlib.sha256).hexdigest()
+                bucket, _ = RateBucket.objects.select_for_update().get_or_create(
+                    key=key, defaults={'expires_at': now + timedelta(minutes=2)})
+                if bucket.count >= limit:
+                    result = HttpResponse('Too many attempts. Please retry in one minute.', status=429)
+                    result['Retry-After'] = '60'
+                    return result
+                bucket.count += 1
+                bucket.save(update_fields=['count'])
                 RateBucket.objects.filter(expires_at__lt=now).delete()
         except OperationalError:
-            result=HttpResponse('Intake is busy. Retry shortly; do not assume your change was saved.',status=503)
-            result['Retry-After']='5'
+            result = HttpResponse('Intake is busy. Retry shortly; do not assume your change was saved.', status=503)
+            result['Retry-After'] = '5'
             return result
         return None

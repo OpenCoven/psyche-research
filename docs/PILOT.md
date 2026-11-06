@@ -4,7 +4,7 @@ Status: proposed pilot plan and copy, recorded 2026-11-04. Current decision is *
 
 ## Proposed pilot contract
 
-Run a four-week pilot with at most ten consenting participants, ten submitted notes in total, one queued note per person, and five items in the active moderation queue. Admit people by the disclosed subject and capacity rules, without an affiliation, social-following, payment, or reputation requirement. Invite a mix of independent builders, maintainers, replication authors, and academically affiliated practitioners only when outreach is explicitly authorized. A deliberately small sample tests usability and workload; it does not establish broad demand or representative fairness.
+Run a four-week pilot with at most ten consenting participants, ten submitted notes in total, one queued note per person, and five items in the active moderation queue. Admit people by the disclosed subject and capacity rules, without an affiliation, social-following, payment, or reputation requirement. Seek a varied mix of practice backgrounds, such as independent builders, maintainers and replication authors, inside or outside institutions, without requiring or selecting on affiliation, and only when outreach is explicitly authorized. A deliberately small sample tests usability and workload; it does not establish broad demand or representative fairness.
 
 The proposed founder schedule is two 45-minute moderation sessions per week, one 30-minute weekly operations and metrics check, and a separately recorded reserve for reports or incidents. There is no guaranteed response time or emergency coverage. If this schedule cannot be accepted in practice, lower the intake cap before opening it. A report queue must have a known monitored route; do not promise that a weekly check is adequate for emergencies.
 
@@ -68,7 +68,7 @@ Week 2 expands only within caps: invite the remaining approved participants in s
 
 Week 3 concentrates on reader value, accessible use, unresolved reports, and whether the founder schedule holds. Gather reviewer interest without claiming a review service. Address the highest-impact friction before adding features.
 
-Week 4 stops new pilot intake, resolves or clearly hands off pending submissions and appeals, offers authors export, records safe aggregate findings, and makes a written continue/reduce/pause/close decision. Do not silently convert a time-bounded pilot into an indefinite service.
+Week 4 stops new pilot intake, decides pending submissions or returns them to their authors unpublished, resolves or refers open appeals to a separate human, offers authors export, records safe aggregate findings, and makes a written continue/reduce/pause/close decision. Do not silently convert a time-bounded pilot into an indefinite service.
 
 ## Contributor onboarding draft
 
