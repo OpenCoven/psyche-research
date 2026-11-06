@@ -83,7 +83,7 @@ try {
     }
   };
   const waitFor = async (expression, message) => {
-    for (let attempt = 0; !(await evaluate(expression)); attempt++) {
+    for (let attempt = 0; !(await (typeof expression === 'function' ? expression() : evaluate(expression))); attempt++) {
       assert.ok(attempt < 100, message);
       await delay(100);
     }
@@ -135,7 +135,7 @@ try {
         const focused = await evaluate('({skip: document.activeElement.classList.contains("skip-link"), id: document.activeElement.id, tag: document.activeElement.tagName, pageFocused: document.hasFocus()})');
         assert.equal(focused.skip, true, 'Keyboard must reach the skip link: ' +
           JSON.stringify({path: pathname, width, ...focused}));
-        assert.equal(await focusVisible(), true, 'Skip-link focus must be visible in the viewport');
+        await waitFor(focusVisible, 'Skip-link focus must be visible in the viewport');
         await key('Enter');
         assert.equal(await evaluate('document.activeElement.id'), 'main', 'Skip link must focus main');
         reflow.push({path: pathname, ...geometry, keyboard_skip_link: true});
@@ -214,7 +214,7 @@ try {
   await tabTo(errorLink);
   await key('Enter');
   assert.equal(await evaluate('document.activeElement.id'), 'id_artifacts');
-  assert.equal(await focusVisible(), true, 'Error-summary activation must visibly focus the invalid field');
+  await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
   assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
