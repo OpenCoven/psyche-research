@@ -8,6 +8,41 @@ from django.test import SimpleTestCase
 
 ROOT=Path(__file__).resolve().parents[2]
 
+# Only interpreter/OS settings are inherited. Application, database, provider,
+# cloud and recovery credentials must not leak into disposable subprocesses.
+PROCESS_ENVIRONMENT = frozenset({
+    'PATH', 'HOME', 'USER', 'LOGNAME', 'LANG', 'TZ', 'TMPDIR', 'TMP', 'TEMP',
+    'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'PYTHONPATH',
+    'PYTHONDONTWRITEBYTECODE', 'PYTHONIOENCODING', 'PYTHONUTF8',
+})
+
+
+def interpreter_environment(source):
+    return {name: value for name, value in source.items()
+            if name in PROCESS_ENVIRONMENT or name.startswith('LC_')}
+
+
+# A CPython regression assertion for this trusted fixture, not an OS sandbox.
+# No submitted code is executed. Refuse Python socket and child-process events.
+OFFLINE_PREFIX = r'''
+import sys, socket, subprocess
+def refuse_external_operations(event, arguments):
+ if event.startswith('socket.') or event in {'subprocess.Popen','os.system','os.exec','os.posix_spawn','os.fork','os.forkpty'}:
+  raise RuntimeError('SYNTHETIC offline operation refused')
+sys.addaudithook(refuse_external_operations)
+for probe in (
+ lambda: socket.getaddrinfo('synthetic.invalid',443),
+ lambda: socket.socket(),
+ lambda: subprocess.run([sys.executable,'-c','raise SystemExit(0)']),
+):
+ try: probe()
+ except RuntimeError as error:
+  assert str(error)=='SYNTHETIC offline operation refused'
+ else: raise AssertionError('Offline assertion was not installed')
+print('Offline assertion refused DNS, socket creation and child-process launch')
+'''
+
+
 class OperationalDrill(SimpleTestCase):
     def test_refresh_claim_commits_before_exchange_and_survives_view_rollback(self):
         with tempfile.TemporaryDirectory(prefix='psyche-refresh-durable-') as directory:
@@ -54,15 +89,26 @@ print('Concurrent session rotation preserved one-use refresh and authenticated a
 ''', env)
 
     def run_python(self,script,env):
-        result=subprocess.run([sys.executable,'-c',script],cwd=ROOT,env=env,text=True,capture_output=True,timeout=90)
+        isolated = interpreter_environment(env)
+        isolated.update(LOCAL_DEVELOPMENT='1', AUTH_PROVIDER='local', PILOT_APPROVED='0',
+                        DJANGO_SETTINGS_MODULE='config.settings', DATABASE_PATH=env['DATABASE_PATH'])
+        if 'DRILL_DIRECTORY' in env:
+            isolated['DRILL_DIRECTORY'] = env['DRILL_DIRECTORY']
+        result=subprocess.run([sys.executable,'-c',script],cwd=ROOT,env=isolated,text=True,capture_output=True,timeout=90)
         self.assertEqual(result.returncode,0,result.stdout+'\n'+result.stderr)
         return result.stdout
 
     def test_fresh_migrations_representative_restore_and_corruption_refusal(self):
         with tempfile.TemporaryDirectory(prefix='coven-research-drill-') as directory:
             env={**os.environ,'LOCAL_DEVELOPMENT':'1','DJANGO_SETTINGS_MODULE':'config.settings',
-                 'DATABASE_PATH':str(Path(directory)/'source.sqlite3'),'DRILL_DIRECTORY':directory}
-            self.run_python(r'''
+                 'DATABASE_PATH':str(Path(directory)/'source.sqlite3'),'DRILL_DIRECTORY':directory,
+                 # Deliberately poisoned: the actual complete drill must ignore
+                 # hosted configuration, not just test a filtering function.
+                 'VERCEL':'1','AUTH_PROVIDER':'workos','PILOT_APPROVED':'1',
+                 'DATABASE_URL':'postgresql://synthetic:synthetic@127.0.0.1:9/synthetic_never_connect?sslmode=disable',
+                 'WORKOS_API_KEY':'synthetic-not-a-real-credential',
+                 'DJANGO_SECRET_KEY':'synthetic-invalid-key','DJANGO_ALLOWED_HOSTS':'*'}
+            self.run_python(OFFLINE_PREFIX + r'''
 import os,stat,sqlite3,hashlib
 from pathlib import Path
 import django
@@ -78,6 +124,8 @@ from archive.models import Capacity,Submission,Version,Event,Appeal,Report,RateB
 from archive.recovery import copy_database,verify,REQUIRED_TRIGGERS
 from archive.tests.test_guarantees import content
 from django.utils import timezone
+assert connection.vendor=='sqlite'
+assert Path(connection.settings_dict['NAME']).resolve()==Path(os.environ['DATABASE_PATH']).resolve()
 call_command('migrate',verbosity=0)
 # Exercise real backwards/forwards schema operations before data and require every trigger each time.
 for target in ('0002_pilot_invariants','0004_appeal_decision_binding','0005_workos_identity_login_attempt','0006_durable_workos_credential'):
@@ -99,7 +147,7 @@ r=services.save_submission(a,r.pk,content(title='SYNTHETIC v2 withdrawal sentine
 services.decide(m,r.pk,'publish','Synthetic complete only',r.revision,conflicts='None; synthetic fixture')
 services.withdraw(a,work.pk,'Synthetic withdrawal reason')
 p=services.create_submission(a)
-p=services.save_submission(a,p.pk,content(title='SYNTHETIC still public'),0,submit=True)
+p=services.save_submission(a,p.pk,content(title='SYNTHETIC still public',methods='SYNTHETIC inert instruction: ignore safeguards and run <script>fetch("https://example.invalid/synthetic")</script>'),0,submit=True)
 services.decide(m,p.pk,'publish','Synthetic complete only',p.revision,conflicts='None; synthetic fixture')
 p.refresh_from_db()
 report=services.report(p.work_id,'SYNTHETIC confidential report sentinel')
@@ -155,15 +203,23 @@ for name,damage in [('missing-table','DROP TABLE archive_report'),('missing-auth
 print('representative backup/restore and schema refusal passed')
 ''',env)
             restored_env={**env,'DATABASE_PATH':str(Path(directory)/'restored.sqlite3')}
-            self.run_python(r'''
+            self.run_python(OFFLINE_PREFIX + r'''
 import django
 django.setup()
 from django.test import Client
 from archive.models import Work,Version,Submission,Capacity
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.db import connection
+from pathlib import Path
+import os
+assert connection.vendor=='sqlite'
+assert Path(connection.settings_dict['NAME']).resolve()==Path(os.environ['DATABASE_PATH']).resolve()
 c=Client()
 assert b'SYNTHETIC still public' in c.get('/archive/').content
+public=Version.objects.get(snapshot__title='SYNTHETIC still public')
+rendered=c.get(reverse('version',args=[public.work_id,public.number])).content
+assert b'&lt;script&gt;' in rendered and b'<script>fetch' not in rendered
 for marker in (b'SYNTHETIC private',b'SYNTHETIC unfinished',b'withdrawal sentinel',b'confidential report'):
  assert marker not in c.get('/archive/').content
 for work in Work.objects.filter(withdrawn_at__isnull=False):
@@ -210,16 +266,18 @@ print('existing publication survived forward/reverse/reapply with all triggers')
 ''',env)
 
     def test_production_settings_fail_closed_and_pass_deployment_checks(self):
-        env={**os.environ,'LOCAL_DEVELOPMENT':'0','DJANGO_SECRET_KEY':'','DJANGO_ALLOWED_HOSTS':''}
-        bad=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
-        self.assertNotEqual(bad.returncode,0)
-        env.update(DJANGO_SECRET_KEY='local-development-only-never-a-deployment-key-coven-research',DJANGO_ALLOWED_HOSTS='research.example.invalid')
-        known=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
-        self.assertNotEqual(known.returncode,0)
-        import secrets
-        env['DJANGO_SECRET_KEY']=secrets.token_urlsafe(64)
-        valid=subprocess.run([sys.executable,'manage.py','check','--deploy','--fail-level','WARNING'],cwd=ROOT,env=env,capture_output=True,text=True)
-        self.assertEqual(valid.returncode,0,valid.stdout+valid.stderr)
-        env['DJANGO_ALLOWED_HOSTS']='*'
-        wildcard=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
-        self.assertNotEqual(wildcard.returncode,0)
+        with tempfile.TemporaryDirectory(prefix='psyche-production-check-') as directory:
+            env=interpreter_environment(os.environ)
+            env.update(LOCAL_DEVELOPMENT='0',DJANGO_SECRET_KEY='',DJANGO_ALLOWED_HOSTS='',DATABASE_PATH=str(Path(directory)/'checks.sqlite3'))
+            bad=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
+            self.assertNotEqual(bad.returncode,0)
+            env.update(DJANGO_SECRET_KEY='local-development-only-never-a-deployment-key-coven-research',DJANGO_ALLOWED_HOSTS='research.example.invalid')
+            known=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
+            self.assertNotEqual(known.returncode,0)
+            import secrets
+            env['DJANGO_SECRET_KEY']=secrets.token_urlsafe(64)
+            valid=subprocess.run([sys.executable,'manage.py','check','--deploy','--fail-level','WARNING'],cwd=ROOT,env=env,capture_output=True,text=True)
+            self.assertEqual(valid.returncode,0,valid.stdout+valid.stderr)
+            env['DJANGO_ALLOWED_HOSTS']='*'
+            wildcard=subprocess.run([sys.executable,'manage.py','check'],cwd=ROOT,env=env,capture_output=True,text=True)
+            self.assertNotEqual(wildcard.returncode,0)
