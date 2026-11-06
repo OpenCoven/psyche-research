@@ -1,7 +1,8 @@
 import json
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import OperationalError
+from django.db import DatabaseError, OperationalError
 from django.db.models import Max, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -9,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST, require_GET
 from . import services
-from .forms import SubmissionForm, DecisionForm, CapacityForm, ReasonForm, WithdrawalForm
+from .forms import MAX_ARTIFACT_LINKS, SubmissionForm, DecisionForm, CapacityForm, ReasonForm, WithdrawalForm
 from .models import Capacity, Submission, Version, Work, Report, Appeal, Decision
 
 # All private form payloads are sensitive to Django exception reporting.
@@ -32,13 +33,31 @@ def moderator_required(view):
         return view(request,*args,**kwargs)
     return wrapped
 
+# Public field limits are read from the model so the published description cannot drift from validation.
+PUBLIC_FIELD_LIMITS = (('title','Title'),('byline','Public author names'),('abstract','Abstract'),('methods','Methods or linked methods'),
+    ('claims','Results and claims'),('limitations','Limitations'),('artifacts','Artifact links, all together'),('provenance','Provenance'),('ai_disclosure','AI assistance disclosure'),
+    ('change_note','Revision or correction note'))
+
+def public_capacity():
+    # Public pages describe intake as paused, with no limits, if the capacity row cannot be read.
+    try:
+        config=Capacity.objects.get(pk=1)
+    except (Capacity.DoesNotExist,DatabaseError):
+        return None,False
+    return config,services.intake_accepting(config)
+
 @require_GET
 def home(request):
-    return render(request,'archive/home.html',{'config':Capacity.objects.get(pk=1)})
+    config,accepting=public_capacity()
+    return render(request,'archive/home.html',{'config':config,'intake_accepting':accepting})
 
 @require_GET
 def policies(request):
-    return render(request,'archive/policies.html')
+    # Public capacity disclosure: configured limits only. No queue occupancy or private record count is rendered.
+    config,accepting=public_capacity()
+    return render(request,'archive/policies.html',{'config':config,'intake_accepting':accepting,
+        'field_limits':[(label,Submission._meta.get_field(name).max_length) for name,label in PUBLIC_FIELD_LIMITS],
+        'body_kib':settings.DATA_UPLOAD_MAX_MEMORY_SIZE//1024,'artifact_links':MAX_ARTIFACT_LINKS})
 
 def public_versions():
     # The latest published version only. No Submission or reputation field participates in discovery.

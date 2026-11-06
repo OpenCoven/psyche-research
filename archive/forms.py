@@ -4,9 +4,12 @@ from django import forms
 from django.core.exceptions import ValidationError
 from .models import Submission, CONTENT_FIELDS, Capacity
 
+# Shown on the public policies page; keep the enforced bound and the published description identical.
+MAX_ARTIFACT_LINKS = 8
+
 def validate_artifacts(text):
     urls = [x.strip() for x in text.splitlines() if x.strip()]
-    if len(urls) > 8:
+    if len(urls) > MAX_ARTIFACT_LINKS:
         raise ValidationError('Use at most eight public artifact links.')
     for url in urls:
         try:

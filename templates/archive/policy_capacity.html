@@ -1,0 +1,20 @@
+<section id="capacity" class="research-section" aria-labelledby="capacity-heading">
+<h2 id="capacity-heading">What one founder can sustain</h2>
+{% if config %}<p class="notice">Intake is currently {% if intake_accepting %}open to scheduled pilot contributors{% else %}paused{% endif %}. The configured limits below are read from the running application. They are capacity limits, not response times.</p>{% else %}<p class="notice">Intake is currently paused. The configured limits cannot be read right now, so treat intake as closed.</p>{% endif %}
+<p>One founder operates this archive and is currently the only planned moderator. There is no staff rota, review board, reviewer pool or emergency cover. The same limits apply to every contributor.</p>
+{% if config %}<dl class="policy-definitions">
+<dt>Moderation queue</dt><dd>A new submission is accepted only while fewer than {{ config.queue_limit }} item{{ config.queue_limit|pluralize }} across the whole archive {{ config.queue_limit|pluralize:"is,are" }} awaiting a human decision.</dd>
+<dt>Queued per contributor</dt><dd>One submitted item at a time.</dd>
+<dt>Active work per contributor</dt><dd>You can start a new draft or revision only while you have fewer than {{ config.per_author_limit }} active item{{ config.per_author_limit|pluralize }}, counting drafts, requested changes and submissions.</dd>
+<dt>Active work across the archive</dt><dd>New work can start only while the archive holds fewer than {{ config.draft_limit }} active item{{ config.draft_limit|pluralize }} in total.</dd>
+</dl>{% endif %}
+<h3>Size of a submission</h3>
+<p>Each text field has its own character limit, and each line break counts as two characters toward it:</p>
+<ul class="check-list">{% for label, limit in field_limits %}<li>{{ label }}: {{ limit }} characters</li>{% endfor %}</ul>
+<p>You can add up to {{ artifact_links }} public HTTPS artifact link{{ artifact_links|pluralize }}. There are no file uploads. Each save is also limited to {{ body_kib }} KiB as the browser sends it. Characters outside basic Latin letters and digits use more of that allowance: about six bytes for an accented or Arabic letter or a line break, about nine for a Chinese, Japanese or Korean character, and three for much punctuation. Long work in those scripts can therefore be refused before it reaches the character limits. If that happens, shorten the longest sections or move detail into a linked artifact. Making this allowance fair across scripts is <a href="https://github.com/OpenCoven/psyche-research/issues/22">tracked separately</a>.</p>
+<h3>When limits are reached</h3>
+<p>When a queue or active-work limit is full, the application refuses the new submission or draft and keeps existing saved work private and available to its author. You can return later or publish elsewhere.</p>
+<p>Proposed founder time, not yet accepted for a live pilot: two 45-minute moderation sessions and one 30-minute operations check each week. The proposed pilot is at most ten participants and ten submissions over four weeks. The founder tracks those totals; the software does not enforce them.</p>
+<p>The founder also proposes to pause intake when the moderation queue is full, when the oldest queued item has waited more than 14 days, when founder effort exceeds three hours a week for two weeks, or when reports or appeals exceed available time or competence. These are pause triggers, not promised decision dates.</p>
+<p>The software prevents anyone from moderating their own submission. Holding conflicted work for a separate unconflicted human moderator is a founder commitment, not a software control. If no such person is available, the work stays on hold rather than being decided by the founder or a familiar. A founder-authored submission would occupy a queue slot the founder cannot decide, so the draft policy recommends that the founder not submit work during the pilot.</p>
+</section>
