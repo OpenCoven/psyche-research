@@ -19,6 +19,7 @@ const browser = spawn(binary, ['--headless=new', '--disable-background-networkin
 let browserLog = '';
 browser.stderr.on('data', bytes => { browserLog = (browserLog + bytes).slice(-16000); });
 let socket;
+let probeFailed = false;
 try {
   const activePort = path.join(profile, 'DevToolsActivePort');
   for (let attempt = 0; !fs.existsSync(activePort); attempt++) {
@@ -214,6 +215,10 @@ try {
     request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
     rendered_reflow: reflow, error_summary_keyboard_focus: true,
     screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun'}));
+} catch (error) {
+  probeFailed = true;
+  console.error('[browser-contract] primary failure:', error);
+  throw error;
 } finally {
   if (socket) socket.close();
   browser.kill('SIGTERM');
@@ -222,5 +227,14 @@ try {
     browser.kill('SIGKILL');
     await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
   }
-  if (browser.exitCode !== null || browser.signalCode !== null) fs.rmSync(profile, {recursive: true, force: true});
+  if (browser.exitCode !== null || browser.signalCode !== null) {
+    try {
+      fs.rmSync(profile, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
+    } catch (error) {
+      // Preserve the original assertion if a Chromium child is still releasing its profile.
+      // The Python owner also kills the isolated process group before scratch cleanup.
+      if (!probeFailed) throw error;
+      console.error('[browser-contract] secondary profile cleanup failure:', error.code);
+    }
+  }
 }
