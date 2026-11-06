@@ -1,6 +1,6 @@
 # Psyche Research status and resumption record
 
-Updated 2026-11-05 (America/Chicago). **Release candidate incomplete; pilot NO-GO; real intake paused.** This goal prepares one reviewed engineering candidate for an explicit integration decision. Merge, hosting changes, deployment, new persistent credentials, spending, agreements, outreach and launch remain outside authorization.
+Updated 2026-11-05 (America/Chicago). **Release-candidate goal blocked and incomplete; pilot NO-GO; real intake paused.** This goal prepares one reviewed engineering candidate for an explicit integration decision. Merge, hosting changes, deployment, new persistent credentials, spending, agreements, outreach and launch remain outside authorization.
 
 ## Candidate and ownership
 
@@ -34,4 +34,4 @@ Resolve the publication precondition before any push. The concrete proposal is t
 
 After authorized safe publication, require current application CI and all nine PostgreSQL tests without skips, including concurrency, guards and logical recovery. Preserve first failures and repair findings before recommending integration. If a supported isolated runtime becomes available independently, run the unchanged dedicated suite there; never point destructive fixtures at serving data or bypass OS identity checks. Restore browser access for available final-candidate checks; human accessibility remains separate.
 
-This release-candidate goal remains active and incomplete. Source consolidation, reproduced defects, durable repair, independent review and new evidence constitute progress; this is not a no-progress blocker audit. An older protected-staging goal's blocked status does not carry over to this goal. Preserve the approved local WorkOS secret-store scope without asking again. Reviews/vouches remain unavailable, reputation disabled and real intake paused.
+The release-candidate goal is blocked and incomplete after the [third-turn blocked audit](evidence/RELEASE_CANDIDATE_BLOCKED_20261105.md). The original turn made concrete progress; the next two turns confirmed the same missing runtime/browser/access and pending publication decision, with no live check to poll or further independent authorized action to close those gates. Resume through the exact publication precondition and supported PostgreSQL execution above; do not substitute older CI or documentation for required evidence. Preserve the approved local WorkOS secret-store scope without asking again. Reviews/vouches remain unavailable, reputation disabled and real intake paused.
