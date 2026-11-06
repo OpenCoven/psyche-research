@@ -54,6 +54,8 @@ Recorded 2026-11-06 for [issue #2](https://github.com/OpenCoven/psyche-research/
 
 The issue asks implementers to preserve the seven product principles in the epic, but neither the epic body nor this repository enumerates them; the original brief is not in the repository. The epic outcome names six attributes: an accessible archive with open eligibility, bounded founder capacity, private intake, human moderation and stable versioned publication. Issue #2's acceptance criteria and the working instructions add non-gating reputation and optional assistance, and the epic scope adds safe input: no routine code execution, remote fetching, uploads, automatic publication, paid admission or fabricated research. For traceability, this working list folds those nine candidates into seven. The founder must confirm or correct it; a correction supersedes this record with a dated entry rather than rewriting it.
 
+Confirmation, 2026-11-06: the founder confirmed this seven-principle list as written, answering a direct question in the agent working session, so it is now the project's principle list. Any later correction still supersedes it with a dated entry.
+
 1. Accessible: the core contributor and reader path works with keyboard, zoom and reflow, screen readers and any writing script, without paid admission or an institutional account.
 2. Open eligibility: anyone may submit under the same disclosed scope and capacity rules; affiliation, employer, GitHub, popularity, reputation, payment or recommendation are never prerequisites.
 3. Bounded founder capacity: intake defaults paused, enforced limits apply equally to everyone, capacity is disclosed, and no response time is promised.
