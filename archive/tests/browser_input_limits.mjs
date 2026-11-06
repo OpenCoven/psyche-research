@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawn, spawnSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
+import {BrowserReview} from './browser_review.mjs';
 
 assert.ok(Number(process.versions.node.split('.')[0]) >= 22, 'Node 22+ with native WebSocket is required.');
 const fixture = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -21,6 +22,7 @@ browser.stderr.on('data', bytes => { browserLog = (browserLog + bytes).slice(-16
 let socket;
 let closeBrowser;
 let probeFailed = false;
+let review;
 try {
   const activePort = path.join(profile, 'DevToolsActivePort');
   for (let attempt = 0; !fs.existsSync(activePort); attempt++) {
@@ -70,6 +72,7 @@ try {
     assert.ok(!response.exceptionDetails, JSON.stringify(response.exceptionDetails));
     return response.result.value;
   };
+  review = new BrowserReview(fixture.review_directory, fixture.source, call, evaluate);
   await call('Page.enable');
   await call('Page.bringToFront');
   await call('Network.enable', {maxPostDataSize: 1024 * 1024});
@@ -115,6 +118,11 @@ try {
         {width, height: 900, deviceScaleFactor: 1, mobile: false});
       for (const pathname of paths) {
         await navigate(pathname);
+        const name = pathname === fixture.editor ? 'editor' :
+          ({'/': 'home', '/archive/': 'archive', '/policies/': 'policies',
+            '/accounts/login/': 'login', '/workspace/': 'workspace'})[pathname];
+        assert.ok(name, 'Review pages must have an explicit synthetic label');
+        await review.audit(name, width, 'page', true);
         const geometry = await evaluate('(' + function () {
           return {viewport: innerWidth, client: document.documentElement.clientWidth,
             scroll: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
@@ -136,6 +144,7 @@ try {
         assert.equal(focused.skip, true, 'Keyboard must reach the skip link: ' +
           JSON.stringify({path: pathname, width, ...focused}));
         await waitFor(focusVisible, 'Skip-link focus must be visible in the viewport');
+        await review.audit(name, width, 'skip');
         await key('Enter');
         await waitFor('document.activeElement.id === "main"', 'Skip link must focus main');
         reflow.push({path: pathname, ...geometry, keyboard_skip_link: true});
@@ -218,19 +227,26 @@ try {
   await waitFor('document.activeElement.id === "id_artifacts"',
     'Error-summary activation must focus the invalid field');
   await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
+  await review.audit('editor', 320, 'error');
   assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
+  const visual = review.finish(true, version.product);
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
     native_methods_units: newlineCount, native_emoji_units: emojiCount,
     extra_input_refused: true, field_limits: limits, multilingual_saved_revision: 1, saved_revision: 2,
     request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
     rendered_reflow: reflow, error_summary_keyboard_focus: true,
-    screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun'}));
+    screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun',
+    screenshot_states: visual.states.length, contrast_failures: visual.failures.length,
+    contrast_unmeasured: visual.unknown.length}));
+  assert.equal(visual.unknown.length, 0, 'Unmeasured contrast requires review: ' + JSON.stringify(visual.unknown.slice(0, 10)));
+  assert.equal(visual.failures.length, 0, 'Rendered contrast failures: ' + JSON.stringify(visual.failures.slice(0, 10)));
 } catch (error) {
   probeFailed = true;
   console.error('[browser-contract] primary failure:', error);
   throw error;
 } finally {
+  if (review && !review.finished) review.finish(false);
   // Let Chrome close its child processes before removing the temporary profile.
   if (closeBrowser && browser.exitCode === null && browser.signalCode === null) {
     try { await closeBrowser(); } catch (error) {
