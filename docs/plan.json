@@ -240,5 +240,6 @@
       "number": 11,
       "url": "https://github.com/OpenCoven/psyche-research/issues/11"
     }
-  ]
+  ],
+  "planning_snapshot_notice": "Historical planning snapshot; bodies can contain superseded source/provider/evidence statements. Use docs/STATUS.md, docs/DECISIONS.md, the release-candidate qualification receipt and refreshed live issues/PR checks for current state. Branding changes do not imply delivery, hosting or acceptance."
 }

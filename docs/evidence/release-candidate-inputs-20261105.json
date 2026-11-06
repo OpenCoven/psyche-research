@@ -1,0 +1,50 @@
+{
+  "main": {
+    "sha": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+    "tree": "c939a6cdcb9f3752f05ca1230da07bf19d38fb7c"
+  },
+  "staging_packet": {
+    "sha": "f7ebe30f3ec37dd032648ade8ffd121f0efc7d93",
+    "tree": "2e0397f66ab3f92262cd311b2b34a1844084c8eb"
+  },
+  "workos": {
+    "sha": "86f564561b6851b0fb0f89f435cc777d70f6143c",
+    "tree": "c39d7fe0a145d10d971486fc54dacfaca44599d8"
+  },
+  "publication_notice": {
+    "sha": "f9ae40780b3500e9235e76735345f442e5b91c0b",
+    "tree": "b1cee77a4137e36ab39bfab4fbc2bf9a857f65d3"
+  },
+  "error_summary": {
+    "sha": "2abdebcc31209782f3dccd23dfbe84f85d787612",
+    "tree": "1d2e0722b0ab5e787a06ae4de22eda3af9fcc08a"
+  },
+  "deployment_guard": {
+    "sha": "dc06c0cbbf0620c857de25d142aaaf8ba0f84e16",
+    "tree": "8bc8b85164a231d4f83e3fa7f1cae2156605266f"
+  },
+  "refresh_serialization": {
+    "sha": "1d5f12946f9406d4041ad8c2c42e64bf7db937e2",
+    "tree": "84e8c4a7c84292379c5bb4e4906d594984c16dfa"
+  },
+  "callback_durability": {
+    "sha": "4e94bd9164bf4bffda8abae7c3ebba032c9f0f0a",
+    "tree": "3176e434c6dee7805dd68900c61ecb49310dbbaa"
+  },
+  "qualification_base": {
+    "sha": "96e808f42e20abc96d25471a118d81783a8d3545",
+    "tree": "12e6d0b121ea5e5a9414017a67c2b5e67c169907"
+  },
+  "branding_candidate": {
+    "sha": "60a126434b7b16c236d189a9d0c2be440b9a1946",
+    "tree": "8996332d055917d92495a8a24c69c77716696d78"
+  },
+  "branding_snapshot": {
+    "source_branch": "feat/psyche-research-brand",
+    "base": "f7ebe30f3ec37dd032648ade8ffd121f0efc7d93",
+    "patch_sha256": "3363244e0472610daab7b8a44540047cafe30619dafccb826b9bafaa0e4e93fd",
+    "tracked_files": 28,
+    "conflict": "STAGING_ACCEPTANCE ownership row: preserved newer qualification text; current-state reconciliation follows separately",
+    "original_worktree_modified": false
+  }
+}
