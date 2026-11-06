@@ -1,0 +1,57 @@
+{
+  "main": {
+    "branch": "main",
+    "sha": "14df69473ffa8796deb4556133df2ba897371d85",
+    "tree": "77e573cb582fbbc01f8a8ebc9ab4893fd7f9d87a"
+  },
+  "jobs": [
+    {
+      "id": 127821935941,
+      "name": "postgres-guarantees",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127821936723,
+      "name": "guarantees",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "run_id": 42196620344,
+  "log_excerpts": {
+    "postgres": [
+      "2026-11-06T09:41:04.5214648Z HEAD is now at 14df694 Merge pull request #15 from OpenCoven/dependabot/pip/asgiref-3.13.0",
+      "2026-11-06T09:41:18.2896737Z test_live_concurrent_capacity_and_duplicate_decision_are_serialized (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_concurrent_capacity_and_duplicate_decision_are_serialized) ... ok",
+      "2026-11-06T09:41:19.5558522Z test_live_existing_publication_survives_upgrade_reverse_and_trigger_reinstallation (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_existing_publication_survives_upgrade_reverse_and_trigger_reinstallation) ... ok",
+      "2026-11-06T09:41:22.4082583Z test_live_logical_dump_restore_preserves_representative_records_and_prepares_only_new_target (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_logical_dump_restore_preserves_representative_records_and_prepares_only_new_target) ... ok",
+      "2026-11-06T09:41:23.3935503Z test_live_migrations_freeze_publication_withdrawal_and_six_immutable_guards (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_migrations_freeze_publication_withdrawal_and_six_immutable_guards) ... ok",
+      "2026-11-06T09:41:24.3158801Z test_live_same_principal_rate_limit_cannot_lose_concurrent_attempts (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_same_principal_rate_limit_cannot_lose_concurrent_attempts) ... ok",
+      "2026-11-06T09:41:25.4145883Z test_live_verifier_rejects_weakened_function_conditional_or_scoped_trigger_and_missing_column (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_verifier_rejects_weakened_function_conditional_or_scoped_trigger_and_missing_column) ... ok",
+      "2026-11-06T09:41:25.4147924Z Ran 6 tests in 8.234s",
+      "2026-11-06T09:41:25.4148170Z OK",
+      "2026-11-06T09:41:27.7954846Z  2026-11-06 09:40:58.729 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+      "2026-11-06T09:41:27.8035149Z  waiting for server to start....2026-11-06 09:40:58.417 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+    ],
+    "application": [
+      "2026-11-06T09:40:50.9343129Z HEAD is now at 14df694 Merge pull request #15 from OpenCoven/dependabot/pip/asgiref-3.13.0",
+      "2026-11-06T09:41:48.9350899Z test_live_concurrent_capacity_and_duplicate_decision_are_serialized (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_concurrent_capacity_and_duplicate_decision_are_serialized) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9355008Z test_live_existing_publication_survives_upgrade_reverse_and_trigger_reinstallation (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_existing_publication_survives_upgrade_reverse_and_trigger_reinstallation) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9359235Z test_live_logical_dump_restore_preserves_representative_records_and_prepares_only_new_target (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_logical_dump_restore_preserves_representative_records_and_prepares_only_new_target) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9363172Z test_live_migrations_freeze_publication_withdrawal_and_six_immutable_guards (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_migrations_freeze_publication_withdrawal_and_six_immutable_guards) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9366552Z test_live_same_principal_rate_limit_cannot_lose_concurrent_attempts (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_same_principal_rate_limit_cannot_lose_concurrent_attempts) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9370424Z test_live_verifier_rejects_weakened_function_conditional_or_scoped_trigger_and_missing_column (archive.tests.test_postgres.PostgreSQLGuarantees.test_live_verifier_rejects_weakened_function_conditional_or_scoped_trigger_and_missing_column) ... skipped 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.'",
+      "2026-11-06T09:41:48.9373257Z Ran 78 tests in 51.093s",
+      "2026-11-06T09:41:48.9373660Z OK (skipped=6)"
+    ]
+  },
+  "draft_pr_heads": {
+    "16": "f7ebe30f3ec37dd032648ade8ffd121f0efc7d93",
+    "17": "86f564561b6851b0fb0f89f435cc777d70f6143c",
+    "18": "f9ae40780b3500e9235e76735345f442e5b91c0b",
+    "19": "2abdebcc31209782f3dccd23dfbe84f85d787612"
+  },
+  "issue4": "open; implementation present; current-source PostgreSQL and provider/human acceptance pending",
+  "issue5": "open; local verification expanded; remaining gates explicit",
+  "recorded_at": "2026-11-06"
+}

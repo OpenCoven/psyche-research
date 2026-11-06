@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Coven Research is a bounded, human-moderated archive for evidence from practical work with AI systems.">
-  <title>{% block title %}Coven Research{% endblock %}</title>
+  <meta name="description" content="Psyche Research is a bounded, human-moderated archive for evidence from practical work with AI systems.">
+  <title>{% block title %}Psyche Research{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'archive/site.css' %}">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="header-inner">
-      <a class="wordmark" href="{% url 'home' %}" aria-label="Coven Research home"><span class="mark" aria-hidden="true">✳</span><span>Coven <strong>Research</strong></span></a>
+      <a class="wordmark" href="{% url 'home' %}" aria-label="Psyche Research home"><span class="mark" aria-hidden="true">✳</span><span>Psyche <strong>Research</strong></span></a>
       <nav aria-label="Main navigation">
         <a href="{% url 'archive' %}">Archive</a>
         <a href="{% url 'policies' %}">How it works</a>
@@ -25,7 +25,7 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer page-width">
-    <div><a class="footer-brand" href="{% url 'home' %}">Coven Research</a><p>Practical work. Visible evidence. Room for correction.</p></div>
+    <div><a class="footer-brand" href="{% url 'home' %}">Psyche Research</a><p>Practical work. Visible evidence. Room for correction.</p></div>
     <div><p class="footer-status"><span class="status-dot" aria-hidden="true"></span> Pilot preparation</p><a href="{% url 'policies' %}">Eligibility, policies &amp; status</a></div>
   </footer>
 </body>

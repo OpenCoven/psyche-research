@@ -1,0 +1,146 @@
+{
+  "recorded_date": "2026-11-04",
+  "source": {
+    "main": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+    "tree": "c939a6cdcb9f3752f05ca1230da07bf19d38fb7c",
+    "pr": 12,
+    "pr_state": "merged",
+    "pr_merged_at": "2026-11-04T13:31:12Z"
+  },
+  "ci": {
+    "id": 41838835633,
+    "url": "https://github.com/OpenCoven/psyche-research/actions/runs/41838835633",
+    "event": "push",
+    "head_sha": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 126604716000,
+        "name": "postgres-guarantees",
+        "status": "completed",
+        "conclusion": "success",
+        "checkout_sha": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+        "log_excerpt": [
+          "2026-11-04T13:31:34.3933398Z d218b6bd2e72388fe00d928f465804c65e6ea306",
+          "2026-11-04T13:31:34.4167842Z d218b6bd2e72388fe00d928f465804c65e6ea306",
+          "2026-11-04T13:31:42.3802884Z   Applying contenttypes.0001_initial... OK",
+          "2026-11-04T13:31:42.4152029Z   Applying auth.0001_initial... OK",
+          "2026-11-04T13:31:42.5040620Z   Applying archive.0001_initial... OK",
+          "2026-11-04T13:31:42.5268406Z   Applying archive.0002_pilot_invariants... OK",
+          "2026-11-04T13:31:42.5511446Z   Applying archive.0003_decision_conflicts... OK",
+          "2026-11-04T13:31:42.6053422Z   Applying archive.0004_appeal_decision_binding... OK",
+          "2026-11-04T13:31:42.6181752Z   Applying contenttypes.0002_remove_content_type_name... OK",
+          "2026-11-04T13:31:42.6272838Z   Applying auth.0002_alter_permission_name_max_length... OK",
+          "2026-11-04T13:31:42.6402269Z   Applying auth.0003_alter_user_email_max_length... OK",
+          "2026-11-04T13:31:42.6474410Z   Applying auth.0004_alter_user_username_opts... OK",
+          "2026-11-04T13:31:42.6550130Z   Applying auth.0005_alter_user_last_login_null... OK",
+          "2026-11-04T13:31:42.6558270Z   Applying auth.0006_require_contenttypes_0002... OK",
+          "2026-11-04T13:31:42.6628792Z   Applying auth.0007_alter_validators_add_error_messages... OK",
+          "2026-11-04T13:31:42.6726291Z   Applying auth.0008_alter_user_username_max_length... OK",
+          "2026-11-04T13:31:42.6805998Z   Applying auth.0009_alter_user_last_name_max_length... OK",
+          "2026-11-04T13:31:42.6898039Z   Applying auth.0010_alter_group_name_max_length... OK",
+          "2026-11-04T13:31:42.6978898Z   Applying auth.0011_update_proxy_permissions... OK",
+          "2026-11-04T13:31:42.7054821Z   Applying auth.0012_alter_user_first_name_max_length... OK",
+          "2026-11-04T13:31:42.7422381Z   Applying sessions.0001_initial... OK",
+          "2026-11-04T13:31:51.6702959Z Ran 6 tests in 7.466s",
+          "2026-11-04T13:31:51.6703284Z OK",
+          "2026-11-04T13:31:53.5590534Z  2026-11-04 13:31:28.797 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+          "2026-11-04T13:31:53.5642866Z  waiting for server to start....2026-11-04 13:31:28.504 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+        ]
+      },
+      {
+        "id": 126604716251,
+        "name": "guarantees",
+        "status": "completed",
+        "conclusion": "success",
+        "checkout_sha": "d218b6bd2e72388fe00d928f465804c65e6ea306",
+        "log_excerpt": [
+          "2026-11-04T13:31:20.1437987Z d218b6bd2e72388fe00d928f465804c65e6ea306",
+          "2026-11-04T13:31:20.1782808Z d218b6bd2e72388fe00d928f465804c65e6ea306",
+          "2026-11-04T13:31:27.2101148Z   Applying contenttypes.0001_initial... OK",
+          "2026-11-04T13:31:27.2222019Z   Applying auth.0001_initial... OK",
+          "2026-11-04T13:31:27.2868387Z   Applying archive.0001_initial... OK",
+          "2026-11-04T13:31:27.3083696Z   Applying archive.0002_pilot_invariants... OK",
+          "2026-11-04T13:31:27.3391731Z   Applying archive.0003_decision_conflicts... OK",
+          "2026-11-04T13:31:27.3784547Z   Applying archive.0004_appeal_decision_binding... OK",
+          "2026-11-04T13:31:27.3954477Z   Applying contenttypes.0002_remove_content_type_name... OK",
+          "2026-11-04T13:31:27.4077900Z   Applying auth.0002_alter_permission_name_max_length... OK",
+          "2026-11-04T13:31:27.4194227Z   Applying auth.0003_alter_user_email_max_length... OK",
+          "2026-11-04T13:31:27.4284765Z   Applying auth.0004_alter_user_username_opts... OK",
+          "2026-11-04T13:31:27.4396358Z   Applying auth.0005_alter_user_last_login_null... OK",
+          "2026-11-04T13:31:27.4408982Z   Applying auth.0006_require_contenttypes_0002... OK",
+          "2026-11-04T13:31:27.4500861Z   Applying auth.0007_alter_validators_add_error_messages... OK",
+          "2026-11-04T13:31:27.4615582Z   Applying auth.0008_alter_user_username_max_length... OK",
+          "2026-11-04T13:31:27.4725959Z   Applying auth.0009_alter_user_last_name_max_length... OK",
+          "2026-11-04T13:31:27.4846877Z   Applying auth.0010_alter_group_name_max_length... OK",
+          "2026-11-04T13:31:27.4948086Z   Applying auth.0011_update_proxy_permissions... OK",
+          "2026-11-04T13:31:27.5064394Z   Applying auth.0012_alter_user_first_name_max_length... OK",
+          "2026-11-04T13:31:27.5440473Z   Applying sessions.0001_initial... OK",
+          "2026-11-04T13:31:28.9892351Z   Applying contenttypes.0001_initial... OK",
+          "2026-11-04T13:31:28.9988168Z   Applying auth.0001_initial... OK",
+          "2026-11-04T13:31:29.0581306Z   Applying archive.0001_initial... OK",
+          "2026-11-04T13:31:29.0783785Z   Applying archive.0002_pilot_invariants... OK",
+          "2026-11-04T13:31:29.1105883Z   Applying archive.0003_decision_conflicts... OK",
+          "2026-11-04T13:31:29.1433405Z   Applying archive.0004_appeal_decision_binding... OK",
+          "2026-11-04T13:31:29.1593826Z   Applying contenttypes.0002_remove_content_type_name... OK",
+          "2026-11-04T13:31:29.1705907Z   Applying auth.0002_alter_permission_name_max_length... OK",
+          "2026-11-04T13:31:29.1811815Z   Applying auth.0003_alter_user_email_max_length... OK",
+          "2026-11-04T13:31:29.1894920Z   Applying auth.0004_alter_user_username_opts... OK",
+          "2026-11-04T13:31:29.1996160Z   Applying auth.0005_alter_user_last_login_null... OK",
+          "2026-11-04T13:31:29.2000735Z   Applying auth.0006_require_contenttypes_0002... OK",
+          "2026-11-04T13:31:29.2087692Z   Applying auth.0007_alter_validators_add_error_messages... OK",
+          "2026-11-04T13:31:29.2197024Z   Applying auth.0008_alter_user_username_max_length... OK",
+          "2026-11-04T13:31:29.2303377Z   Applying auth.0009_alter_user_last_name_max_length... OK",
+          "2026-11-04T13:31:29.2484847Z   Applying auth.0010_alter_group_name_max_length... OK",
+          "2026-11-04T13:31:29.2612641Z   Applying auth.0011_update_proxy_permissions... OK",
+          "2026-11-04T13:31:29.2755515Z   Applying auth.0012_alter_user_first_name_max_length... OK",
+          "2026-11-04T13:32:20.4271606Z Ran 78 tests in 51.097s",
+          "2026-11-04T13:32:20.4271832Z OK (skipped=6)",
+          "2026-11-04T13:32:20.4272849Z   Applying sessions.0001_initial... OK"
+        ]
+      }
+    ]
+  },
+  "browser": {
+    "inventory": {
+      "apps": [],
+      "browsers": [],
+      "errors": [
+        "Native apps: Error: Sky Computer Use service startup request failed",
+        "Browsers: Error: The browser access host is unavailable"
+      ]
+    },
+    "tab_attempt": {
+      "url": "http://127.0.0.1:8010",
+      "error": "The browser access host is unavailable"
+    },
+    "screenshots": [],
+    "result": "blocked; no browser workflow or human accessibility acceptance"
+  },
+  "hosting": {
+    "command": "vercel project inspect psyche-research",
+    "cli_version": "64.7.0",
+    "exit_code": 1,
+    "error": "fetch failed",
+    "invocation_id": "e029ad70-01f8-4400-9724-059303f2f9a8",
+    "local_project_link": "No .vercel/project.json",
+    "access_inference": "none; error does not establish identity, ownership, or absence of remote resources",
+    "connector_inventory": "No callable Vercel or PostgreSQL provider tools found"
+  },
+  "local_http": {
+    "homepage": 200,
+    "health": 200,
+    "scope": "Existing loopback server; no fixtures created, no rendered-browser acceptance"
+  },
+  "coverage": {
+    "source_delivery": "verified",
+    "ci": "verified at main revision",
+    "actual_browser": "blocked",
+    "hosted_build": "unrun",
+    "provider_recovery": "unrun",
+    "human_accessibility": "unrun",
+    "policy_adoption": "pending",
+    "pilot": "NO-GO"
+  }
+}

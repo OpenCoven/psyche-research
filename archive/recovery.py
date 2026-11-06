@@ -77,8 +77,10 @@ def copy_database(source,destination,restore=False):
             origin.backup(target)
             verify(target)
             if restore:
+                target.execute('DELETE FROM archive_workoscredential')
                 target.execute('DELETE FROM django_session')
                 target.execute('DELETE FROM archive_ratebucket')
+                target.execute('DELETE FROM archive_workosloginattempt')
                 target.execute('UPDATE archive_capacity SET intake_open=0,revision=revision+1 WHERE id=1')
                 target.execute("INSERT INTO archive_event (kind,target,details,created_at,actor_id) VALUES ('restored_paused','capacity','{}',strftime('%Y-%m-%d %H:%M:%f','now'),NULL)")
                 target.commit()

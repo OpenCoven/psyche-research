@@ -134,3 +134,33 @@ class RateBucket(models.Model):
     key = models.CharField(max_length=64, primary_key=True)
     count = models.PositiveIntegerField(default=0)
     expires_at = models.DateTimeField()
+
+class WorkOSIdentity(models.Model):
+    """Operator binding; emails and external roles never select a local account."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    client_id = models.CharField(max_length=128)
+    subject = models.CharField(max_length=128)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['client_id', 'subject'], name='unique_workos_identity')]
+
+class WorkOSLoginAttempt(models.Model):
+    """Short-lived server-side PKCE exchange; consumed before any provider call."""
+    state_hash = models.CharField(max_length=64, primary_key=True)
+    browser_hash = models.CharField(max_length=64, unique=True)
+    verifier = models.CharField(max_length=128)
+    next_path = models.CharField(max_length=2048, default='/workspace/')
+    expires_at = models.DateTimeField()
+
+
+class WorkOSCredential(models.Model):
+    """Provider tokens have durable consumption state independent of response saves."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.OneToOneField('sessions.Session', on_delete=models.CASCADE)
+    identity = models.ForeignKey(WorkOSIdentity, on_delete=models.CASCADE)
+    sealed = models.TextField()
+    provider_session_id = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+    claim = models.UUIDField(null=True, editable=False)
+    claimed_at = models.DateTimeField(null=True, editable=False)

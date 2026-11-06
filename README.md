@@ -1,4 +1,4 @@
-# Coven Research
+# Psyche Research
 
 A bounded research publication for practical work with AI systems: experiments, replications, negative results, tools, datasets and evidence-supported ideas. Eligibility does not depend on affiliation, popularity, GitHub or payment. Publication follows human moderation for scope, completeness, rights, privacy, safety and abuse; it is not scientific peer review.
 
@@ -9,6 +9,8 @@ A bounded research publication for practical work with AI systems: experiments, 
 Read [project status](docs/STATUS.md), [decisions](docs/DECISIONS.md), [founder runbook](docs/RUNBOOK.md) and the [delivery epic](https://github.com/OpenCoven/psyche-research/issues/1). The current state and remaining gates are in those records, not implied by an attractive interface or a passing unit test.
 
 ## Local development
+
+WorkOS login is selected by the user. See [WorkOS setup](docs/WORKOS.md) for the implemented AuthKit flow, verified staging project and login destinations, required server-side configuration and existing-account identity linking. Local development below retains `AUTH_PROVIDER=local` until the real staging server key and exact issuer are privately configured; real provider sign-in remains unverified.
 
 Use Python 3.13. The dependency file pins hashes; normal installation requires package-registry network access. Runtime core workflows require no network service or model provider. The commands below create only an empty local database; they create no participant accounts and no research fixtures.
 

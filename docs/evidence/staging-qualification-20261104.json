@@ -1,0 +1,122 @@
+{
+  "base_sha": "dc06c0cbbf0620c857de25d142aaaf8ba0f84e16",
+  "remote_candidate_sha": "2abdebcc31209782f3dccd23dfbe84f85d787612",
+  "source_sha256": {
+    "archive/middleware.py": "f991009b0d6e8b07e4a92924a9eafe5b5a37784af23bb190424fb6957f8702d9",
+    "archive/workos_auth.py": "3da48c4bcf5eb87f59de5d5e28f22d87b87e3419e44ac24393e3d858ebd6bbda",
+    "config/settings.py": "bf3b2f5c33d643522980b30c30e74826ff22eefa8602e47ed80862198b16953e",
+    "archive/tests/test_workos_auth.py": "e4a47144f07f936c0a5278322dc4360ce4c34b51f6ac21bcb46375828efd66d9",
+    "archive/tests/test_operations.py": "7c8c9fd615f489bb97e833b77b5b3e86e39d97bdd9fbeb94472eb082cb236c08",
+    "archive/tests/test_postgres.py": "7343a787c89bd2de13310324e7bfa2c36b9c78f3a36203f21bce4d752203e511",
+    "archive/tests/session_overlap_fixture.py": "0124f401cbe17ccd9c1d00f2948ad3194ba933a03ec77a6abdb8f4873a50678f",
+    "vercel.json": "749c0d1d1d87ff621e87c1c5acc420893b6ee6723ad9d279293ea0a187a40d52",
+    "requirements.txt": "3b3dca85242e812c4f5de8034b4bc203e861060d731748913d56e8d215b94bb7"
+  },
+  "verification": [
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "test",
+        "--verbosity",
+        "2"
+      ],
+      "exit": 0,
+      "seconds": 28.849,
+      "summary": [
+        "Ran 108 tests in 27.849s",
+        "OK (skipped=8)",
+        "System check identified no issues (0 silenced)."
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "makemigrations",
+        "--check",
+        "--dry-run"
+      ],
+      "exit": 0,
+      "seconds": 0.62,
+      "summary": [
+        "No changes detected"
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "manage.py",
+        "check",
+        "--fail-level",
+        "WARNING"
+      ],
+      "exit": 0,
+      "seconds": 0.658,
+      "summary": [
+        "System check identified no issues (0 silenced)."
+      ]
+    },
+    {
+      "command": [
+        "/Users/buns/Documents/GitHub/OpenCoven/psyche-research/.venv/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit": 0,
+      "seconds": 0.19,
+      "summary": [
+        "No broken requirements found."
+      ]
+    },
+    {
+      "command": "ephemeral-key production settings check",
+      "exit": 0,
+      "output": "System check identified no issues (0 silenced).\n"
+    }
+  ],
+  "baseline": {
+    "tests": 104,
+    "skips": 7,
+    "executed": 97,
+    "seconds": 31.838
+  },
+  "first_failure": {
+    "test": "test_overlapping_requests_do_not_reuse_a_consumed_refresh_token",
+    "expected_calls": 1,
+    "observed_calls": 2,
+    "result": "FAIL"
+  },
+  "legacy_full_middleware_reproduction": {
+    "exit": 1,
+    "http_statuses": [
+      503,
+      302
+    ],
+    "result": "expected failure"
+  },
+  "browser": {
+    "apps": 0,
+    "browsers": 0,
+    "errors": [
+      "Native apps: Error: Sky Computer Use service startup request failed",
+      "Browsers: Error: The browser access host is unavailable"
+    ]
+  },
+  "vercel_read": {
+    "exit": 1,
+    "error": "fetch failed"
+  },
+  "unrun": [
+    "live PostgreSQL new-head test",
+    "new-head hosted CI",
+    "live AuthKit",
+    "rendered accessibility",
+    "human screen reader",
+    "protected staging",
+    "provider PITR",
+    "encrypted off-host recovery",
+    "human operating acceptance"
+  ]
+}

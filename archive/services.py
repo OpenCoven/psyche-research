@@ -36,6 +36,10 @@ def capacity():
     # The seeded singleton and SQLite BEGIN IMMEDIATE serialize limits and state changes.
     return Capacity.objects.select_for_update().get(pk=1)
 
+def intake_accepting(config):
+    # Public intake status. Mirrors both submission gates in save_submission: the operator switch and pilot approval.
+    return bool(config.intake_open and (settings.LOCAL_DEVELOPMENT or settings.PILOT_APPROVED))
+
 def owned(user, submission_id):
     human(user)
     try:
