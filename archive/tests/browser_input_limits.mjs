@@ -137,7 +137,7 @@ try {
           JSON.stringify({path: pathname, width, ...focused}));
         await waitFor(focusVisible, 'Skip-link focus must be visible in the viewport');
         await key('Enter');
-        assert.equal(await evaluate('document.activeElement.id'), 'main', 'Skip link must focus main');
+        await waitFor('document.activeElement.id === "main"', 'Skip link must focus main');
         reflow.push({path: pathname, ...geometry, keyboard_skip_link: true});
       }
     }
@@ -215,7 +215,8 @@ try {
   }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
   await tabTo(errorLink);
   await key('Enter');
-  assert.equal(await evaluate('document.activeElement.id'), 'id_artifacts');
+  await waitFor('document.activeElement.id === "id_artifacts"',
+    'Error-summary activation must focus the invalid field');
   await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
   assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
