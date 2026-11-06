@@ -56,7 +56,7 @@ def policies(request):
     # Public capacity disclosure: configured limits only. No queue occupancy or private record count is rendered.
     config,accepting=public_capacity()
     return render(request,'archive/policies.html',{'config':config,'intake_accepting':accepting,
-        'field_limits':[(label,Submission._meta.get_field(name).max_length) for name,label in PUBLIC_FIELD_LIMITS],
+        'field_limits':[(label,f'{Submission._meta.get_field(name).max_length:,}') for name,label in PUBLIC_FIELD_LIMITS],
         'body_kib':settings.DATA_UPLOAD_MAX_MEMORY_SIZE//1024,'artifact_links':MAX_ARTIFACT_LINKS})
 
 def public_versions():

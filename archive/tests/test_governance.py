@@ -51,9 +51,10 @@ class FounderCapacityDisclosure(Accounts, TestCase):
         # Every free-text content field must be listed; kind and license are choices, not free text.
         self.assertEqual({name for name, _ in PUBLIC_FIELD_LIMITS}, set(CONTENT_FIELDS) - {'kind', 'license'})
         self.assertIn('each line break counts as two characters', section)
+        self.assertIn('<li>Methods or linked methods: 10,000 characters</li>', section)
         for name, label in PUBLIC_FIELD_LIMITS:
             with self.subTest(field=name):
-                self.assertIn(f'<li>{label}: {Submission._meta.get_field(name).max_length} characters</li>', section)
+                self.assertIn(f'<li>{label}: {Submission._meta.get_field(name).max_length:,} characters</li>', section)
         services.configure(self.moderator, {'intake_open': True, 'queue_limit': 4}, current.revision, 'Synthetic reopening for a disclosure test.')
         section = capacity_section(self.client.get(reverse('policies')))
         self.assertIn('Intake is currently open to scheduled pilot contributors.', section)
