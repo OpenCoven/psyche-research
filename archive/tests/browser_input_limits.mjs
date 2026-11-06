@@ -70,6 +70,66 @@ try {
   await call('Page.enable');
   await call('Network.enable', {maxPostDataSize: 1024 * 1024});
   await call('Fetch.enable', {patterns: [{urlPattern: 'http://*'}, {urlPattern: 'https://*'}]});
+  const key = async (name, modifiers = 0) => {
+    const codes = {Tab: 9, Enter: 13, a: 65};
+    for (const type of ['keyDown', 'keyUp']) {
+      await call('Input.dispatchKeyEvent', {type, key: name,
+        code: name === 'a' ? 'KeyA' : name, windowsVirtualKeyCode: codes[name], modifiers});
+    }
+  };
+  const waitFor = async (expression, message) => {
+    for (let attempt = 0; !(await evaluate(expression)); attempt++) {
+      assert.ok(attempt < 100, message);
+      await delay(100);
+    }
+  };
+  const navigate = async pathname => {
+    await call('Page.navigate', {url: origin.origin + pathname});
+    await waitFor('location.pathname === ' + JSON.stringify(pathname) +
+      ' && document.readyState === "complete"', 'Expected page did not finish rendering');
+  };
+  const focusVisible = async () => evaluate('(' + function () {
+    const element = document.activeElement;
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight &&
+      rect.left >= 0 && rect.right <= innerWidth && style.outlineStyle !== 'none' &&
+      parseFloat(style.outlineWidth) >= 2 && style.outlineColor !== 'rgba(0, 0, 0, 0)';
+  }.toString() + ')()');
+  const tabTo = async selector => {
+    for (let attempt = 0; ; attempt++) {
+      if (await evaluate('document.activeElement.matches(' + JSON.stringify(selector) + ')')) return;
+      assert.ok(attempt < 80, 'Keyboard could not reach ' + selector);
+      await key('Tab');
+    }
+  };
+  const reflow = [];
+  const auditPages = async paths => {
+    for (const width of [1440, 390, 320]) {
+      await call('Emulation.setDeviceMetricsOverride',
+        {width, height: 900, deviceScaleFactor: 1, mobile: false});
+      for (const pathname of paths) {
+        await navigate(pathname);
+        const geometry = await evaluate('(' + function () {
+          return {viewport: innerWidth, client: document.documentElement.clientWidth,
+            scroll: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            main: document.querySelectorAll('main#main').length,
+            headings: document.querySelectorAll('h1').length};
+        }.toString() + ')()');
+        assert.equal(geometry.viewport, width);
+        assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + pathname + ' at ' + width);
+        assert.equal(geometry.main, 1, 'One main landmark is required');
+        assert.equal(geometry.headings, 1, 'One page heading is required');
+        await key('Tab');
+        assert.equal(await evaluate('document.activeElement.classList.contains("skip-link")'), true);
+        assert.equal(await focusVisible(), true, 'Skip-link focus must be visible in the viewport');
+        await key('Enter');
+        assert.equal(await evaluate('document.activeElement.id'), 'main', 'Skip link must focus main');
+        reflow.push({path: pathname, ...geometry, keyboard_skip_link: true});
+      }
+    }
+  };
+  await auditPages(['/', '/archive/', '/policies/', '/accounts/login/']);
   await call('Network.setCookie', {name: fixture.cookie.name, value: fixture.cookie.value, url: origin.origin,
     httpOnly: true, sameSite: 'Lax'});
   await call('Page.navigate', {url: origin.origin + fixture.editor});
@@ -113,11 +173,35 @@ try {
   assert.equal(posts.length, 1);
   assert.ok(posts[0].bytes > 96 * 1024 && posts[0].bytes < 512 * 1024);
   assert.equal(posts[0].crlf, true);
+  await auditPages(['/workspace/', fixture.editor]);
+  await tabTo('#id_artifacts');
+  await key('a', process.platform === 'darwin' ? 4 : 2);
+  await call('Input.insertText', {text: 'http://127.0.0.1/SYNTHETIC-inert-reference'});
+  await tabTo('button[value="save"]');
+  await key('Enter');
+  const errorLink = '.form-errors a[href="#id_artifacts"]';
+  await waitFor('!!document.querySelector(' + JSON.stringify(errorLink) + ')',
+    'Linked artifact error did not render');
+  assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '1',
+    'Rejected form input must preserve the accepted draft revision');
+  assert.equal(await evaluate('document.getElementById("id_artifacts").getAttribute("aria-invalid")'), 'true');
+  assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
+  assert.equal(await evaluate('(' + function () {
+    const described = document.getElementById('id_artifacts').getAttribute('aria-describedby') || '';
+    return described.split(/\s+/).filter(Boolean).every(id => document.getElementById(id));
+  }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
+  await tabTo(errorLink);
+  await key('Enter');
+  assert.equal(await evaluate('document.activeElement.id'), 'id_artifacts');
+  assert.equal(await focusVisible(), true, 'Error-summary activation must visibly focus the invalid field');
+  assert.equal(posts.length, 2, 'One accepted save and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
     native_methods_units: newlineCount, native_emoji_units: emojiCount,
     extra_input_refused: true, field_limits: limits, saved_revision: 1,
-    request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true}));
+    request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
+    rendered_reflow: reflow, error_summary_keyboard_focus: true,
+    screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun'}));
 } finally {
   if (socket) socket.close();
   browser.kill('SIGTERM');
