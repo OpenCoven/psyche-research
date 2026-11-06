@@ -14,6 +14,10 @@ Main `4f95b86cbf29b0f7013b2c6949594532451c8197` integrates the full reviewed sou
 
 Read-only Vercel CLI access now works through a process-local CONNECT route preserving end-to-end TLS. The exact project Git link is null and automatic Git deployment creation remains disabled; all seven deployments are terminal ERROR. A source push is not a hosted release. The existing WorkOS staging key is now user-supplied and read-only authenticated access is verified; real AuthKit remains unrun. The earlier access/key/source holds are historical. Scheduled recurrence, interpretive-task registration, full Project coverage and hosted/human pilot gates retain their own criteria.
 
+## Synthetic visual-review evidence, 2026-11-06
+
+The integrated native Chrome runtime can export a bounded screenshot/contrast bundle through the artifact allowlist described in [BROWSER_REVIEW.md](BROWSER_REVIEW.md). The first exact-source PR #30 browser run captured 37 images and uploaded only 40 allowlisted files, then correctly failed on insufficient text-field border contrast. The downloaded ZIP digest/contents were verified; the original failure and candidate color repair are recorded in that guide. Current-head qualification is required before integration. Browser/OS native services remain unavailable locally; the artifact prepares human review without claiming human acceptance or adding a deployed preview. The artifact expires after seven days, so retain the exact reviewed copy or regenerate it on the accepted source when human review is scheduled.
+
 ## Initial source and evidence (earlier snapshot)
 
 Live main is `d218b6bd2e72388fe00d928f465804c65e6ea306`; the primary checkout is `feat/psyche-research-brand` at `f7ebe30f3ec37dd032648ade8ffd121f0efc7d93`, with 28 pre-existing modified files at intake. This maintenance work adds its own files and narrow instruction, status and deployment-exclusion edits. Existing branding changes and other owners' work are retained. No application service, model, migration, database, credential or intake state was changed.

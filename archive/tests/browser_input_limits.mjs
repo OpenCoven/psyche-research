@@ -122,7 +122,6 @@ try {
           ({'/': 'home', '/archive/': 'archive', '/policies/': 'policies',
             '/accounts/login/': 'login', '/workspace/': 'workspace'})[pathname];
         assert.ok(name, 'Review pages must have an explicit synthetic label');
-        await review.audit(name, width, 'page', true);
         const geometry = await evaluate('(' + function () {
           return {viewport: innerWidth, client: document.documentElement.clientWidth,
             scroll: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
@@ -133,6 +132,7 @@ try {
         assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + JSON.stringify({path: pathname, width, ...geometry}));
         assert.equal(geometry.main, 1, 'One main landmark is required');
         assert.equal(geometry.headings, 1, 'One page heading is required');
+        await review.audit(name, width, 'page', true);
         // Django's local login intentionally autofocuses username. Reach the first
         // link by native reverse Tab there; other pages must start with the skip link.
         if (await evaluate('document.activeElement.matches("[autofocus]")')) {

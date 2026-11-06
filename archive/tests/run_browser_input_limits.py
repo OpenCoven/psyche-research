@@ -104,6 +104,11 @@ def main():
                 for name in ('title', 'byline', 'abstract', 'claims', 'limitations', 'provenance', 'ai_disclosure', 'change_note'):
                     assert len(getattr(submission, name)) == Submission._meta.get_field(name).max_length
                 assert not Capacity.objects.get(pk=1).intake_open and not Version.objects.exists()
+                report_path = review_directory / 'report.json'
+                report = json.loads(report_path.read_text())
+                report['server_verified'] = True
+                report['server_postcondition'] = {'revision': 2, 'intake': 'paused', 'public_versions': 0}
+                report_path.write_text(json.dumps(report, indent=2) + '\n')
                 print(json.dumps({'server_revision': 2, 'all_field_limits_saved': True,
                     'stored_newlines': 'LF', 'intake': 'paused', 'public_versions': 0}))
             finally:

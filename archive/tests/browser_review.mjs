@@ -119,6 +119,7 @@ export class BrowserReview {
     this.call = call;
     this.evaluate = evaluate;
     this.report = {synthetic_only: true, source, states: [], complete: false,
+      server_verified: false,
       browser_zoom: 'unrun', screen_reader_human_acceptance: 'unrun',
       native_checkbox_radio_and_all_other_ui_contrast: 'manual review required'};
     fs.mkdirSync(directory, {recursive: true, mode: 0o700});
@@ -140,12 +141,15 @@ export class BrowserReview {
     }
     const screenshot = await this.call('Page.captureScreenshot', parameters);
     fs.writeFileSync(path.join(this.directory, filename), Buffer.from(screenshot.data, 'base64'));
+    const viewport = await this.evaluate('({width: innerWidth, height: innerHeight, scale: devicePixelRatio})');
+    assert.deepEqual(viewport, {width, height: 900, scale: 1}, 'Capture must preserve the tested viewport');
     return filename;
   }
   async audit(name, width, phase, full = false) {
     const measurement = await this.evaluate(`(${renderedContrast.toString()})((${contrastMath.toString()})())`);
     const screenshot = await this.capture(name, width, phase, full);
-    this.report.states.push({name, width, phase, screenshot, ...measurement});
+    const viewport = await this.evaluate('({width: innerWidth, height: innerHeight, scale: devicePixelRatio, clientWidth: document.documentElement.clientWidth})');
+    this.report.states.push({name, width, phase, viewport, screenshot, ...measurement});
     this.save();
   }
   finish(complete, browser = null) {
@@ -155,9 +159,11 @@ export class BrowserReview {
       .map(check => ({name: state.name, width: state.width, phase: state.phase, ...check})));
     this.report.unknown = this.report.states.flatMap(state => state.unknown
       .map(item => ({name: state.name, width: state.width, phase: state.phase, ...item})));
+    this.report.contrast_status = !complete ? 'incomplete' : this.report.unknown.length ? 'unmeasured' :
+      this.report.failures.length ? 'failed' : 'passed';
     this.save();
     const cards = this.report.states.map(state => `<article><h2>${state.name} · ${state.width}px · ${state.phase}</h2><a href="${state.screenshot}"><img src="${state.screenshot}" alt="Synthetic ${state.name} at ${state.width} pixels, ${state.phase} state"></a><p>Open the full image to inspect it.</p></article>`).join('\n');
-    fs.writeFileSync(path.join(this.directory, 'index.html'), `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic browser review</title><style>body{font:16px/1.5 system-ui;margin:2rem;background:#f7f5ef;color:#262328}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}article{min-width:0;border:1px solid #665f6b;padding:1rem}h2{font-size:1rem}img{width:100%;max-height:600px;object-fit:contain;object-position:top;background:white}a{color:#59426f}</style><h1>SYNTHETIC browser review</h1><p>Test evidence only. These isolated fixtures are not published research or participant records. Source: ${this.report.source.sha}. Complete: ${complete}.</p><p>Human visual, screen-reader, browser zoom, device and operating acceptance remain unrun. Computed color checks have the bounded scope and limitations in report.json. No credentials, sessions or database are included.</p><section>${cards}</section></html>`);
+    fs.writeFileSync(path.join(this.directory, 'index.html'), `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic browser review</title><style>body{font:16px/1.5 system-ui;margin:2rem;background:#f7f5ef;color:#262328}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}article{min-width:0;border:1px solid #665f6b;padding:1rem}h2{font-size:1rem}img{width:100%;max-height:600px;object-fit:contain;object-position:top;background:white}a{color:#59426f}</style><h1>SYNTHETIC browser review</h1><p>Test evidence only. These isolated fixtures are not published research or participant records. Source: ${this.report.source.sha}. Capture sequence complete: ${complete}. Contrast: ${this.report.contrast_status}; failed pairs: ${this.report.failures.length}; unmeasured cases: ${this.report.unknown.length}.</p><p>Human visual, screen-reader, browser zoom, device and operating acceptance remain unrun. Computed color checks have the bounded scope and limitations in report.json. No credentials, sessions or database are included. Check server_verified in report.json for the separate persisted-state postcondition.</p><section>${cards}</section></html>`);
     fs.writeFileSync(path.join(this.directory, 'README.md'), '# SYNTHETIC browser review\n\nOpen index.html locally to inspect the images, and report.json for source fingerprints and measured color pairs. Only synthetic loopback screenshots and non-secret measurement/source metadata are included. No fixture configuration, session cookie, database, raw server log or provider credential is exported.\n\nThis bundle is engineering evidence, not human accessibility acceptance or WCAG conformance. Native checkbox/radio appearance, other UI states, browser zoom, cross-browser/device behavior and assistive technology need separate review.\n');
     this.finished = true;
     return this.report;
