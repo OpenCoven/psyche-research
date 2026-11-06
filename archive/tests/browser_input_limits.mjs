@@ -68,6 +68,7 @@ try {
     return response.result.value;
   };
   await call('Page.enable');
+  await call('Page.bringToFront');
   await call('Network.enable', {maxPostDataSize: 1024 * 1024});
   await call('Fetch.enable', {patterns: [{urlPattern: 'http://*'}, {urlPattern: 'https://*'}]});
   const key = async (name, modifiers = 0) => {
@@ -122,7 +123,9 @@ try {
         assert.equal(geometry.main, 1, 'One main landmark is required');
         assert.equal(geometry.headings, 1, 'One page heading is required');
         await key('Tab');
-        assert.equal(await evaluate('document.activeElement.classList.contains("skip-link")'), true);
+        const focused = await evaluate('({skip: document.activeElement.classList.contains("skip-link"), id: document.activeElement.id, tag: document.activeElement.tagName, pageFocused: document.hasFocus()})');
+        assert.equal(focused.skip, true, 'First Tab must reach the skip link: ' +
+          JSON.stringify({path: pathname, width, ...focused}));
         assert.equal(await focusVisible(), true, 'Skip-link focus must be visible in the viewport');
         await key('Enter');
         assert.equal(await evaluate('document.activeElement.id'), 'main', 'Skip link must focus main');
