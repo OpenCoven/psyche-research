@@ -55,6 +55,10 @@ For illustration, one 0.25-CU endpoint running for 30 days costs `0.25 × 24 × 
 
 Do not reduce the seven-day recovery requirement to fit a free plan, silently assume off-host storage is free, or treat an alert as a spending cap. Resolve the missing owner decisions and actual quotes before requesting resource/credential/deployment approval. Keep the rehearsal synthetic-only and paused while those decisions are pending.
 
+## Synthetic screenshot and color review
+
+[BROWSER_REVIEW.md](BROWSER_REVIEW.md) describes PR #30's downloadable full-page/focus gallery, source fingerprints and bounded computed-color diagnostics. Its first native execution captured 37 images and exposed insufficient field-border contrast; the repair requires current-head qualification. Use the exact accepted-source artifact and its digest for visual inspection, retain failures, and record the human reviewer/result separately. Existing rendered reflow/keyboard evidence remains valid within its recorded scope; screenshot availability or a passing color calculation does not establish human, actual zoom, device or assistive-technology acceptance.
+
 ## Browser execution sheet
 
 Do not seed the existing loopback database or reuse any account whose purpose is unknown. Once browser access works, create a fresh private mode-0700 local directory and a separate SQLite database, run migrations with explicit local-only settings and bind a second server to an unused loopback port. Name all accounts and research `SYNTHETIC`; use no real contact or provider key. Provision test roles only in this disposable environment, using the established services. Record its database path, source revision, server process, browser tab and URL in the restricted run receipt. Do not commit credentials, sessions or raw private exports. Fixtures must never become migrations, public seeds or bundled assets.
