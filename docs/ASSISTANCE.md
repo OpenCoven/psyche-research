@@ -4,6 +4,8 @@ Status: proposed operating playbook, 2026-11-04. The current archive has no runt
 
 ## What is available now
 
+The [isolated offline workflow receipt](evidence/OFFLINE_WORKFLOW_20261106.md) records a complete synthetic local publication/correction/withdrawal and recovery drill with inherited provider settings removed, CPython socket/process events refused, and an injected instruction retained as escaped text. This qualifies the exercised local path without a model provider. WorkOS remains the selected hosted authentication path; actual AuthKit acceptance is still required. The audit assertion is a regression check for trusted tests, never permission to run submitted code.
+
 Authors can prepare their note with ordinary tools and enter it into the archive themselves. They can describe assistance in the required AI-assistance disclosure field, including a clear statement of no assistance. A human operator can use this checklist to discuss preparation with an author without sharing the private draft with an external service. The application does not generate suggestions, store an assistance consent ledger, call an LLM, or automatically verify research claims.
 
 Contributor accounts are provided by an operator and are not GitHub identities. The `moderators` group is the explicit application moderation permission; staff or superuser status alone is not a scientific qualification or a familiar grant. The implementation cannot establish that the person holding a password is human. Operators must therefore never give a familiar a contributor or moderator session, session cookie, account password, publication credential, database access, or authority to operate a human decision form.
