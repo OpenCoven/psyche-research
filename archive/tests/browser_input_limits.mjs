@@ -81,10 +81,27 @@ try {
       activeErrorLink: !!active?.matches('.form-errors a[href="#id_artifacts"]'),
       fragment: ['#main', '#id_artifacts', ''].includes(location.hash) ? location.hash : 'other',
       artifactPresent: !!document.getElementById('id_artifacts'),
-      errorLinkPresent: !!document.querySelector('.form-errors a[href="#id_artifacts"]')};
+      errorLinkPresent: !!document.querySelector('.form-errors a[href="#id_artifacts"]'),
+      events: window.__syntheticFocusEvents || []};
   }.toString() + ')()');
   review = new BrowserReview(fixture.review_directory, fixture.source, call, evaluate);
   await call('Page.enable');
+  await call('Page.addScriptToEvaluateOnNewDocument', {source: '(' + function () {
+    const events = window.__syntheticFocusEvents = [];
+    const record = event => {
+      if (event.type.startsWith('key') && !['Tab', 'Enter'].includes(event.key)) return;
+      const target = event.target;
+      const active = document.activeElement;
+      events.push({type: event.type, key: event.key, ready: document.readyState,
+        activeId: active?.id, activeTag: active?.tagName, targetId: target?.id,
+        errorLink: !!target?.matches?.('.form-errors a[href="#id_artifacts"]'),
+        fragment: ['#main', '#id_artifacts', ''].includes(location.hash) ? location.hash : 'other'});
+      if (events.length > 40) events.shift();
+    };
+    for (const type of ['DOMContentLoaded', 'load', 'hashchange', 'focusin', 'keydown', 'keyup']) {
+      window.addEventListener(type, record, true);
+    }
+  }.toString() + ')()'});
   await call('Page.bringToFront');
   await call('Network.enable', {maxPostDataSize: 1024 * 1024});
   await call('Fetch.enable', {patterns: [{urlPattern: 'http://*'}, {urlPattern: 'https://*'}]});
@@ -221,25 +238,40 @@ try {
   await tabTo('button[value="save"]');
   await key('Enter');
   const errorLink = '.form-errors a[href="#id_artifacts"]';
-  await waitFor('!!document.querySelector(' + JSON.stringify(errorLink) + ')',
-    'Linked artifact error did not render');
-  assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '2',
-    'Rejected form input must preserve the accepted draft revision');
-  assert.equal(await evaluate('document.getElementById("id_artifacts").getAttribute("aria-invalid")'), 'true');
-  assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
-  assert.equal(await evaluate('(' + function () {
-    const described = document.getElementById('id_artifacts').getAttribute('aria-describedby') || '';
-    const ids = described.split(/\s+/).filter(Boolean);
-    return ids.includes('id_artifacts_error') && ids.includes('id_artifacts_helptext') &&
-      ids.every(id => document.getElementById(id));
-  }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
-  await tabTo(errorLink);
-  await key('Enter');
-  await waitFor('document.activeElement.id === "id_artifacts"',
-    'Error-summary activation must focus the invalid field');
-  await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
+  const focusErrorSummary = async () => {
+    await waitFor('!!document.querySelector(' + JSON.stringify(errorLink) + ')',
+      'Linked artifact error did not render');
+    assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '2',
+      'Rejected form input must preserve the accepted draft revision');
+    assert.equal(await evaluate('document.getElementById("id_artifacts").getAttribute("aria-invalid")'), 'true');
+    assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
+    assert.equal(await evaluate('(' + function () {
+      const described = document.getElementById('id_artifacts').getAttribute('aria-describedby') || '';
+      const ids = described.split(/\s+/).filter(Boolean);
+      return ids.includes('id_artifacts_error') && ids.includes('id_artifacts_helptext') &&
+        ids.every(id => document.getElementById(id));
+    }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
+    await tabTo(errorLink);
+    await key('Enter');
+    await waitFor('document.activeElement.id === "id_artifacts"',
+      'Error-summary activation must focus the invalid field');
+    await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
+  };
+  await focusErrorSummary();
   await review.audit('editor', 320, 'error');
   assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
+  // A bounded reproduction, stopping on the first failure. Every iteration is a
+  // new rejected document, not a retry of a failed assertion or an accepted save.
+  const extraRejectedDocuments = 20;
+  for (let round = 0; round < extraRejectedDocuments; round++) {
+    const previousLoader = (await call('Page.getFrameTree')).frameTree.frame.loaderId;
+    await tabTo('button[value="save"]');
+    await key('Enter');
+    await waitFor(async () => (await call('Page.getFrameTree')).frameTree.frame.loaderId !== previousLoader,
+      'Expected a new validation-error document');
+    await focusErrorSummary();
+    assert.equal(posts.length, 4 + round, 'Each focus reproduction must issue exactly one rejected POST');
+  }
   const version = await call('Browser.getVersion');
   const visual = review.finish(true, version.product);
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
@@ -247,6 +279,7 @@ try {
     extra_input_refused: true, field_limits: limits, multilingual_saved_revision: 1, saved_revision: 2,
     request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
     rendered_reflow: reflow, error_summary_keyboard_focus: true,
+    error_summary_activations: 1 + extraRejectedDocuments,
     screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun',
     screenshot_states: visual.states.length, contrast_failures: visual.failures.length,
     contrast_unmeasured: visual.unknown.length}));
