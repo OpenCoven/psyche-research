@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "source": "6b78d6966c7f842831f31d203660a7b58d75499e",
+  "tree": "f6b6e8a4787fb36fc10fc59e70051aaa0bcec0ad",
+  "run_url": "https://github.com/OpenCoven/psyche-research/actions/runs/42290337941",
+  "jobs": {
+    "guarantees": {
+      "id": 128141796193,
+      "discovered": 157,
+      "executed": 147,
+      "skipped": 10,
+      "seconds": 119.598,
+      "conclusion": "success"
+    },
+    "postgres-guarantees": {
+      "id": 128141795947,
+      "executed": 35,
+      "skipped": 0,
+      "seconds": 35.991,
+      "postgresql": "16.15",
+      "conclusion": "success"
+    },
+    "browser-input-contract": {
+      "id": 128141795716,
+      "conclusion": "success",
+      "browser": "Chrome/156.0.8078.79",
+      "node": "v22.23.4",
+      "sandbox_disabled": false,
+      "pages": 6,
+      "viewports": [
+        1440,
+        390,
+        320
+      ],
+      "rendered_states": 18,
+      "horizontal_overflow": false,
+      "keyboard_skip_links": true,
+      "keyboard_save_revision": 2,
+      "rejected_input_preserves_revision": true,
+      "linked_error_focus": true,
+      "native_methods_units": 10000,
+      "native_emoji_units": 5000,
+      "multilingual_request_bytes": 417803,
+      "stored_line_endings": "LF",
+      "intake": "paused",
+      "public_versions": 0,
+      "browser_zoom": "unrun",
+      "screen_reader_human_acceptance": "unrun"
+    }
+  },
+  "source_hashes": {
+    "static/archive/site.css": "6c807325f2e843f7b47f89cc3a32b8229678d541581e93ec00fe19936668d76e",
+    "archive/tests/browser_input_limits.mjs": "522eba033c82dec59c34ef7390e6d4e35d5e15ea3925fc6b246b815b702c07ec",
+    "archive/tests/run_browser_input_limits.py": "5caf68f6258c84f181c9d7b8b650d864557d6f652fdf2ced01d36c6f5baec0af"
+  },
+  "hosting": {
+    "selected_target": "0xbuns/psyche-research",
+    "project_id": "prj_KpONwA0jddpWRBIVQGt22FbZX7t2",
+    "team_plan": "pro",
+    "git_link": null,
+    "environment_entries": 0,
+    "deployments_error": 7,
+    "new_deployments": 0,
+    "execution_authority": "not granted"
+  },
+  "first_failures": [
+    {
+      "source": "43db1a19adeb316951d8564eafa04b37ca574fb2",
+      "run": 42288253625,
+      "finding": "Probe assumed initial first-Tab focus even on autofocused login."
+    },
+    {
+      "source": "b8ccace2852776595b20e2a1473fe666da1227eb",
+      "run": 42288840522,
+      "finding": "ENOTEMPTY during browser-profile cleanup masked the assertion."
+    },
+    {
+      "source": "827eafc19290160f048cead4e6a23a03469b5e3a",
+      "run": 42289067397,
+      "finding": "Primary error preserved; local login initially focused username, then Tab focused password."
+    },
+    {
+      "source": "b9bfe6c8868dc6651eeaef9a0ae9700728e2b003",
+      "run": 42289541249,
+      "finding": "Probe used Alt=1 instead of Shift=8 for reverse Tab."
+    },
+    {
+      "source": "6e67ae50f7c336fb9b3382b7d4cc45b009ce875e",
+      "run": 42289779236,
+      "finding": "Actual workspace overflow: viewport 1440, client 1425, scroll 2819."
+    },
+    {
+      "source": "af1d24fb7e398a318b0e502a589a158135263eb3",
+      "run": 42290070959,
+      "finding": "Actual editor heading overflow: viewport 1440, client 1425, scroll 6084."
+    }
+  ]
+}
