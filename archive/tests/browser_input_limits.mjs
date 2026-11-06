@@ -173,6 +173,14 @@ try {
   assert.equal(posts.length, 1);
   assert.ok(posts[0].bytes > 96 * 1024 && posts[0].bytes < 512 * 1024);
   assert.equal(posts[0].crlf, true);
+  // A valid unbroken maximum-length title must also reflow in the workspace.
+  await tabTo('#id_title');
+  await key('a', process.platform === 'darwin' ? 4 : 2);
+  await call('Input.insertText', {text: 'SYNTHETIC-' + 'x'.repeat(190)});
+  await tabTo('button[value="save"]');
+  await key('Enter');
+  await waitFor('document.querySelector("input[name=revision]")?.value === "2"',
+    'Native keyboard title save did not commit');
   await auditPages(['/workspace/', fixture.editor]);
   await tabTo('#id_artifacts');
   await key('a', process.platform === 'darwin' ? 4 : 2);
@@ -182,7 +190,7 @@ try {
   const errorLink = '.form-errors a[href="#id_artifacts"]';
   await waitFor('!!document.querySelector(' + JSON.stringify(errorLink) + ')',
     'Linked artifact error did not render');
-  assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '1',
+  assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '2',
     'Rejected form input must preserve the accepted draft revision');
   assert.equal(await evaluate('document.getElementById("id_artifacts").getAttribute("aria-invalid")'), 'true');
   assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
@@ -194,11 +202,11 @@ try {
   await key('Enter');
   assert.equal(await evaluate('document.activeElement.id'), 'id_artifacts');
   assert.equal(await focusVisible(), true, 'Error-summary activation must visibly focus the invalid field');
-  assert.equal(posts.length, 2, 'One accepted save and one rejected validation request are expected');
+  assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
     native_methods_units: newlineCount, native_emoji_units: emojiCount,
-    extra_input_refused: true, field_limits: limits, saved_revision: 1,
+    extra_input_refused: true, field_limits: limits, multilingual_saved_revision: 1, saved_revision: 2,
     request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
     rendered_reflow: reflow, error_summary_keyboard_focus: true,
     screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun'}));
