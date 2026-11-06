@@ -8,6 +8,12 @@ Current checkpoint: **approved maintenance delivery and integrated manual qualif
 
 The original inventory tables below preserve the earlier audit snapshot. Use the latest checkpoint and “Resumed execution evidence” for current source, issue/PR counts, access and worktree dispositions. Issue #20 now includes the current checkpoint and explicit protection proposal, with its preparation criterion checked; source delivery, recurring execution and full planning reconciliation remain unchecked.
 
+## Pilot acceptance follow-up, 2026-11-06
+
+Main `4f95b86cbf29b0f7013b2c6949594532451c8197` integrates the full reviewed source stack and current maintenance source through PR #27. Exact-main product, PostgreSQL, native input, CodeQL and manual maintenance jobs passed; source reconciliation is complete. The later local collector has complete REST coverage, twenty-two retained worktrees, twelve open issues and the new draft PR #28. It preserves every owner's edits and performs no cleanup. PR #28 source `6b78d6966c7f842831f31d203660a7b58d75499e` passed eighteen rendered/keyboard states, 147 executed application tests and all 35 PostgreSQL tests without skips in run 42290337941. The new rendered receipt records actual layout defects, probe failures and limits; later heads require their own checks.
+
+Read-only Vercel CLI access now works through a process-local CONNECT route preserving end-to-end TLS. The exact project Git link is null and automatic Git deployment creation remains disabled; all seven deployments are terminal ERROR. A source push is not a hosted release. The existing WorkOS staging key is now user-supplied and read-only authenticated access is verified; real AuthKit remains unrun. The earlier access/key/source holds are historical. Scheduled recurrence, interpretive-task registration, full Project coverage and hosted/human pilot gates retain their own criteria.
+
 ## Initial source and evidence (earlier snapshot)
 
 Live main is `d218b6bd2e72388fe00d928f465804c65e6ea306`; the primary checkout is `feat/psyche-research-brand` at `f7ebe30f3ec37dd032648ade8ffd121f0efc7d93`, with 28 pre-existing modified files at intake. This maintenance work adds its own files and narrow instruction, status and deployment-exclusion edits. Existing branding changes and other owners' work are retained. No application service, model, migration, database, credential or intake state was changed.

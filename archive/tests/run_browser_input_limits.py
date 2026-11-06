@@ -82,12 +82,13 @@ def main():
                         pass
                     node.wait(timeout=5)
                 submission.refresh_from_db()
-                assert submission.revision == 1 and submission.state == Submission.State.DRAFT
+                assert submission.revision == 2 and submission.state == Submission.State.DRAFT
+                assert submission.title == 'SYNTHETIC-' + 'x' * 190
                 assert submission.methods == '界' * 9998 + '\nX' and len(submission.artifacts) == 8000
                 for name in ('title', 'byline', 'abstract', 'claims', 'limitations', 'provenance', 'ai_disclosure', 'change_note'):
                     assert len(getattr(submission, name)) == Submission._meta.get_field(name).max_length
                 assert not Capacity.objects.get(pk=1).intake_open and not Version.objects.exists()
-                print(json.dumps({'server_revision': 1, 'all_field_limits_saved': True,
+                print(json.dumps({'server_revision': 2, 'all_field_limits_saved': True,
                     'stored_newlines': 'LF', 'intake': 'paused', 'public_versions': 0}))
             finally:
                 server.terminate()

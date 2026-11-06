@@ -1,6 +1,6 @@
 # Vercel hosting candidate and approval packet
 
-Status: hosting target selected by the user; deployment, project creation, database provisioning, purchases, new persistent credentials, real intake, invitations, and launch remain unapproved. Recorded 2026-11-04. This packet keeps the existing Django application and its server-rendered workflow. It does not authorize a platform rewrite or claim a Vercel deployment exists.
+Status: hosting target selected by the user; deployment, project creation, database provisioning, purchases, new persistent credentials, real intake, invitations, and launch remain unapproved. Updated 2026-11-06: the user selected existing `0xbuns/psyche-research` for protected synthetic staging only. Its ID is `prj_KpONwA0jddpWRBIVQGt22FbZX7t2`; the selection is not deployment or resource-execution approval. This packet keeps the existing Django application and its server-rendered workflow. It does not authorize a platform rewrite or claim a Vercel deployment exists.
 
 [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md) supplies the current source/CI checkpoint, a concrete but unapproved staging proposal, provider/protection recommendations, execution sheets, cost/recovery objectives and missing target/operator decisions. Use it to resolve the actual identifiers and prepare one consolidated staging request; this document remains the environment and operational contract.
 
@@ -18,8 +18,8 @@ Keep the founder workflow unchanged: contributor accounts supplied by an operato
 | --- | --- | --- |
 | Source and application | `OpenCoven/psyche-research`, reviewed Django release revision recorded in the delivery evidence. | Repository is known; exact deployable revision must be frozen and verified. |
 | Hosting platform | Vercel native Django/Python deployment. | User-selected target; no project or deployment approval inferred. |
-| Team and project | A founder-owned Vercel team/project with a known access list and production branch. | Team, project name/ID, plan and ownership not yet verified. |
-| Public domain | One explicitly approved canonical domain, with any preview hosts separately scoped. | Domain, DNS authority and allowed hosts unknown. |
+| Team and project | A founder-owned Vercel team/project with a known access list and production branch. | Existing `0xbuns/psyche-research` is user-selected and verified by read-only CLI. Git link is null; automatic Git deployments stay disabled. Confirm billing/audience and authorize the exact execution scope separately. |
+| Public domain | One explicitly approved canonical domain, with any preview hosts separately scoped. | Existing platform domain is `psyche-research.vercel.app`. All Deployments protection and the exact generated/alias allowlist need execution approval and actual verification; no custom DNS is selected. |
 | Database | Managed PostgreSQL with TLS hostname verification, supported version, bounded connections, backups and a tested recovery route. | Provider, account, plan and credentials unselected; do not choose, purchase, or create them without approval. |
 | Region | One approved application region close to the approved database region, subject to privacy/residency requirements. | No region or residency commitment selected. |
 | Preview | Isolated protected preview with synthetic data and a separate PostgreSQL database and secrets. | No preview resource exists or is approved by this document. |

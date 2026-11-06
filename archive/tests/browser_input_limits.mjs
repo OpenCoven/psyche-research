@@ -19,6 +19,8 @@ const browser = spawn(binary, ['--headless=new', '--disable-background-networkin
 let browserLog = '';
 browser.stderr.on('data', bytes => { browserLog = (browserLog + bytes).slice(-16000); });
 let socket;
+let closeBrowser;
+let probeFailed = false;
 try {
   const activePort = path.join(profile, 'DevToolsActivePort');
   for (let attempt = 0; !fs.existsSync(activePort); attempt++) {
@@ -42,6 +44,7 @@ try {
     pending.set(id, {resolve, reject, timer});
     socket.send(JSON.stringify({id, method, params}));
   });
+  closeBrowser = () => call('Browser.close');
   socket.addEventListener('message', event => {
     const message = JSON.parse(event.data);
     if (message.id) {
@@ -68,8 +71,78 @@ try {
     return response.result.value;
   };
   await call('Page.enable');
+  await call('Page.bringToFront');
   await call('Network.enable', {maxPostDataSize: 1024 * 1024});
   await call('Fetch.enable', {patterns: [{urlPattern: 'http://*'}, {urlPattern: 'https://*'}]});
+  const key = async (name, modifiers = 0) => {
+    const codes = {Tab: 9, Enter: 13, a: 65};
+    for (const type of ['keyDown', 'keyUp']) {
+      await call('Input.dispatchKeyEvent', {type, key: name,
+        code: name === 'a' ? 'KeyA' : name, windowsVirtualKeyCode: codes[name], modifiers,
+        ...(type === 'keyDown' && name === 'Enter' ? {text: '\r', unmodifiedText: '\r'} : {})});
+    }
+  };
+  const waitFor = async (expression, message) => {
+    for (let attempt = 0; !(await (typeof expression === 'function' ? expression() : evaluate(expression))); attempt++) {
+      assert.ok(attempt < 100, message);
+      await delay(100);
+    }
+  };
+  const navigate = async pathname => {
+    await call('Page.navigate', {url: origin.origin + pathname});
+    await waitFor('location.pathname === ' + JSON.stringify(pathname) +
+      ' && document.readyState === "complete"', 'Expected page did not finish rendering');
+  };
+  const focusVisible = async () => evaluate('(' + function () {
+    const element = document.activeElement;
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight &&
+      rect.left >= 0 && rect.right <= innerWidth && style.outlineStyle !== 'none' &&
+      parseFloat(style.outlineWidth) >= 2 && style.outlineColor !== 'rgba(0, 0, 0, 0)';
+  }.toString() + ')()');
+  const tabTo = async (selector, modifiers = 0) => {
+    for (let attempt = 0; ; attempt++) {
+      if (await evaluate('document.activeElement.matches(' + JSON.stringify(selector) + ')')) return;
+      assert.ok(attempt < 80, 'Keyboard could not reach ' + selector);
+      await key('Tab', modifiers);
+    }
+  };
+  const reflow = [];
+  const auditPages = async paths => {
+    for (const width of [1440, 390, 320]) {
+      await call('Emulation.setDeviceMetricsOverride',
+        {width, height: 900, deviceScaleFactor: 1, mobile: false});
+      for (const pathname of paths) {
+        await navigate(pathname);
+        const geometry = await evaluate('(' + function () {
+          return {viewport: innerWidth, client: document.documentElement.clientWidth,
+            scroll: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            main: document.querySelectorAll('main#main').length,
+            headings: document.querySelectorAll('h1').length};
+        }.toString() + ')()');
+        assert.equal(geometry.viewport, width);
+        assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + JSON.stringify({path: pathname, width, ...geometry}));
+        assert.equal(geometry.main, 1, 'One main landmark is required');
+        assert.equal(geometry.headings, 1, 'One page heading is required');
+        // Django's local login intentionally autofocuses username. Reach the first
+        // link by native reverse Tab there; other pages must start with the skip link.
+        if (await evaluate('document.activeElement.matches("[autofocus]")')) {
+          await tabTo('.skip-link', 8);
+        } else {
+          await key('Tab');
+        }
+        const focused = await evaluate('({skip: document.activeElement.classList.contains("skip-link"), id: document.activeElement.id, tag: document.activeElement.tagName, pageFocused: document.hasFocus()})');
+        assert.equal(focused.skip, true, 'Keyboard must reach the skip link: ' +
+          JSON.stringify({path: pathname, width, ...focused}));
+        await waitFor(focusVisible, 'Skip-link focus must be visible in the viewport');
+        await key('Enter');
+        await waitFor('document.activeElement.id === "main"', 'Skip link must focus main');
+        reflow.push({path: pathname, ...geometry, keyboard_skip_link: true});
+      }
+    }
+  };
+  await auditPages(['/', '/archive/', '/policies/', '/accounts/login/']);
   await call('Network.setCookie', {name: fixture.cookie.name, value: fixture.cookie.value, url: origin.origin,
     httpOnly: true, sameSite: 'Lax'});
   await call('Page.navigate', {url: origin.origin + fixture.editor});
@@ -113,18 +186,80 @@ try {
   assert.equal(posts.length, 1);
   assert.ok(posts[0].bytes > 96 * 1024 && posts[0].bytes < 512 * 1024);
   assert.equal(posts[0].crlf, true);
+  // A valid unbroken maximum-length title must also reflow in the workspace.
+  await tabTo('#id_title');
+  await key('a', process.platform === 'darwin' ? 4 : 2);
+  await call('Input.insertText', {text: 'SYNTHETIC-' + 'x'.repeat(190)});
+  await tabTo('button[value="save"]');
+  await key('Enter');
+  await waitFor('document.querySelector("input[name=revision]")?.value === "2"',
+    'Native keyboard title save did not commit');
+  await auditPages(['/workspace/', fixture.editor]);
+  await tabTo('#id_artifacts');
+  await key('a', process.platform === 'darwin' ? 4 : 2);
+  await call('Input.insertText', {text: 'http://127.0.0.1/SYNTHETIC-inert-reference'});
+  await tabTo('button[value="save"]');
+  await key('Enter');
+  const errorLink = '.form-errors a[href="#id_artifacts"]';
+  await waitFor('!!document.querySelector(' + JSON.stringify(errorLink) + ')',
+    'Linked artifact error did not render');
+  assert.equal(await evaluate('document.querySelector("input[name=revision]").value'), '2',
+    'Rejected form input must preserve the accepted draft revision');
+  assert.equal(await evaluate('document.getElementById("id_artifacts").getAttribute("aria-invalid")'), 'true');
+  assert.equal(await evaluate('document.getElementById("id_artifacts").labels.length'), 1);
+  assert.equal(await evaluate('(' + function () {
+    const described = document.getElementById('id_artifacts').getAttribute('aria-describedby') || '';
+    const ids = described.split(/\s+/).filter(Boolean);
+    return ids.includes('id_artifacts_error') && ids.includes('id_artifacts_helptext') &&
+      ids.every(id => document.getElementById(id));
+  }.toString() + ')()'), true, 'Error/help descriptions must refer to existing elements');
+  await tabTo(errorLink);
+  await key('Enter');
+  await waitFor('document.activeElement.id === "id_artifacts"',
+    'Error-summary activation must focus the invalid field');
+  await waitFor(focusVisible, 'Error-summary activation must visibly focus the invalid field');
+  assert.equal(posts.length, 3, 'Two accepted saves and one rejected validation request are expected');
   const version = await call('Browser.getVersion');
   console.log(JSON.stringify({browser: version.product, node: process.version, sandbox_disable_flag: false,
     native_methods_units: newlineCount, native_emoji_units: emojiCount,
-    extra_input_refused: true, field_limits: limits, saved_revision: 1,
-    request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true}));
+    extra_input_refused: true, field_limits: limits, multilingual_saved_revision: 1, saved_revision: 2,
+    request_bytes: posts[0].bytes, browser_serialized_crlf: true, non_loopback_fetches_blocked: true,
+    rendered_reflow: reflow, error_summary_keyboard_focus: true,
+    screen_reader_human_acceptance: 'unrun', actual_browser_zoom: 'unrun'}));
+} catch (error) {
+  probeFailed = true;
+  console.error('[browser-contract] primary failure:', error);
+  throw error;
 } finally {
+  // Let Chrome close its child processes before removing the temporary profile.
+  if (closeBrowser && browser.exitCode === null && browser.signalCode === null) {
+    try { await closeBrowser(); } catch (error) {
+      console.error('[browser-contract] graceful shutdown failed:', error.message);
+    }
+  }
   if (socket) socket.close();
-  browser.kill('SIGTERM');
-  await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+  const waitForExit = async () => {
+    if (browser.exitCode === null && browser.signalCode === null) {
+      await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+    }
+  };
+  await waitForExit();
+  if (browser.exitCode === null && browser.signalCode === null) {
+    browser.kill('SIGTERM');
+    await waitForExit();
+  }
   if (browser.exitCode === null && browser.signalCode === null) {
     browser.kill('SIGKILL');
-    await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+    await waitForExit();
   }
-  if (browser.exitCode !== null || browser.signalCode !== null) fs.rmSync(profile, {recursive: true, force: true});
+  if (browser.exitCode !== null || browser.signalCode !== null) {
+    try {
+      fs.rmSync(profile, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
+    } catch (error) {
+      // Preserve the original assertion if a Chromium child is still releasing its profile.
+      // The Python owner also kills the isolated process group before scratch cleanup.
+      if (!probeFailed) throw error;
+      console.error('[browser-contract] secondary profile cleanup failure:', error.code);
+    }
+  }
 }
