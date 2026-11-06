@@ -46,13 +46,16 @@ def main():
         review_directory = ROOT / 'var/browser-review'
         # Refuse stale bundles rather than mixing images from different executions.
         review_directory.mkdir(parents=True, mode=0o700, exist_ok=False)
+        from archive.tests.browser_fonts import font_environment
         source = {
             'sha': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
             'tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], cwd=ROOT, text=True).strip(),
             'dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)),
+            'font_environment': font_environment(),
             'files': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in (
                 'static/archive/site.css', 'archive/tests/browser_input_limits.mjs',
                 'archive/tests/browser_review.mjs', 'archive/tests/run_browser_input_limits.py',
+                'archive/tests/browser_fonts.py',
                 '.github/workflows/verify.yml')},
         }
         fixture = scratch / 'fixture.json'
