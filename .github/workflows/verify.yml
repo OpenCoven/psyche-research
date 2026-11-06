@@ -94,8 +94,12 @@ jobs:
         run: node --test archive/tests/browser_review.test.mjs
       - name: Install multilingual screenshot prerequisites
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji
+          # Only this disposable runner: avoid the observed stalled Azure mirror.
+          # Keep Ubuntu's signed indexes and package verification unchanged.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+          apt_options=(-o Acquire::Retries=0 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update -qq --error-on=any
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji
       - name: Native input counts and full multilingual save on isolated loopback app
         run: python archive/tests/run_browser_input_limits.py
       - name: Preserve synthetic browser review evidence

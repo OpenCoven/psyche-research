@@ -1,3 +1,9 @@
+# Current selected-defaults and qualification handoff
+
+Updated 2026-11-06. D013 and STAGING_ACCEPTANCE record the user-accepted founder-only seven-day rehearsal, operator/private-thread contact, USD 50 incremental ceiling and founder-held encrypted Mac backups/key custody. Do not repeat those selection requests. No resource, persistent key, payment, agreement or deployment exists from this decision. Main is `85c91268c1aeeff12a282c8a02f240ee4080935c`; PR #30 merged after green head checks, but main run 42297340205 timed out on the Azure font download and its subsequent attempt failed native invalid-field focus. Application/PostgreSQL remain successful. No completed main visual bundle or final browser database postcondition may be claimed. The candidate bounds official Ubuntu HTTPS downloads and adds value-free focus diagnostics while preserving every native assertion. Follow its exact run and retain the failures. Full pilot remains NO-GO; all 22 worktrees and other owners' edits are retained.
+
+## Earlier maintenance findings
+
 # Agent readiness and recurring maintenance
 
 Audited 2026-11-06 against the working tree, GitHub REST collections and exact-head checks. **Maintenance source is integrated and manual hosted inventory is verified; the first scheduled execution and weekly interpretive task remain unverified; pilot remains NO-GO.** This analysis covers agent operation, GitHub hygiene, verification, ownership, cleanup, security boundaries and automation. It is not a penetration test, scientific review or hosted acceptance. The earlier task's external acceptance blockers do not prevent this maintenance slice; this goal has made concrete progress through the inventory, skills, collector and workflow.
