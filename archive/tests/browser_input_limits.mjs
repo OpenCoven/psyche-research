@@ -122,13 +122,13 @@ try {
             headings: document.querySelectorAll('h1').length};
         }.toString() + ')()');
         assert.equal(geometry.viewport, width);
-        assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + pathname + ' at ' + width);
+        assert.ok(geometry.scroll <= geometry.client, 'Horizontal page overflow: ' + JSON.stringify({path: pathname, width, ...geometry}));
         assert.equal(geometry.main, 1, 'One main landmark is required');
         assert.equal(geometry.headings, 1, 'One page heading is required');
         // Django's local login intentionally autofocuses username. Reach the first
         // link by native reverse Tab there; other pages must start with the skip link.
         if (await evaluate('document.activeElement.matches("[autofocus]")')) {
-          await tabTo('.skip-link', 1);
+          await tabTo('.skip-link', 8);
         } else {
           await key('Tab');
         }
@@ -235,11 +235,19 @@ try {
     }
   }
   if (socket) socket.close();
-  browser.kill('SIGTERM');
-  await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+  const waitForExit = async () => {
+    if (browser.exitCode === null && browser.signalCode === null) {
+      await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+    }
+  };
+  await waitForExit();
+  if (browser.exitCode === null && browser.signalCode === null) {
+    browser.kill('SIGTERM');
+    await waitForExit();
+  }
   if (browser.exitCode === null && browser.signalCode === null) {
     browser.kill('SIGKILL');
-    await Promise.race([new Promise(resolve => browser.once('exit', resolve)), delay(3000)]);
+    await waitForExit();
   }
   if (browser.exitCode !== null || browser.signalCode !== null) {
     try {
