@@ -9,6 +9,7 @@ archive/tests
 docs
 deploy
 .github
+.agents
 
 # Private operator artifacts never belong in source or a deployment upload.
 backups/

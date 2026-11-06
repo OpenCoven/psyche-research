@@ -5,7 +5,7 @@
   "functions": {
     "config/wsgi.py": {
       "maxDuration": 30,
-      "excludeFiles": "{archive/tests/**,docs/**,deploy/**,.github/**,var/**,.env*,.venv/**,staticfiles/**}"
+      "excludeFiles": "{archive/tests/**,docs/**,deploy/**,.github/**,.agents/**,var/**,.env*,.venv/**,staticfiles/**}"
     }
   }
 }
