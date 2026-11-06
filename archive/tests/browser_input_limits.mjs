@@ -23,6 +23,7 @@ let socket;
 let closeBrowser;
 let probeFailed = false;
 let review;
+let failureContext;
 try {
   const activePort = path.join(profile, 'DevToolsActivePort');
   for (let attempt = 0; !fs.existsSync(activePort); attempt++) {
@@ -72,6 +73,16 @@ try {
     assert.ok(!response.exceptionDetails, JSON.stringify(response.exceptionDetails));
     return response.result.value;
   };
+  // Synthetic control metadata only: never log values, cookies, text or URLs.
+  failureContext = () => evaluate('(' + function () {
+    const active = document.activeElement;
+    return {ready: document.readyState, pageFocused: document.hasFocus(),
+      activeId: active?.id, activeTag: active?.tagName,
+      activeErrorLink: !!active?.matches('.form-errors a[href="#id_artifacts"]'),
+      fragment: ['#main', '#id_artifacts', ''].includes(location.hash) ? location.hash : 'other',
+      artifactPresent: !!document.getElementById('id_artifacts'),
+      errorLinkPresent: !!document.querySelector('.form-errors a[href="#id_artifacts"]')};
+  }.toString() + ')()');
   review = new BrowserReview(fixture.review_directory, fixture.source, call, evaluate);
   await call('Page.enable');
   await call('Page.bringToFront');
@@ -244,6 +255,10 @@ try {
 } catch (error) {
   probeFailed = true;
   console.error('[browser-contract] primary failure:', error);
+  if (failureContext) {
+    try { console.error('[browser-contract] synthetic focus context:', JSON.stringify(await failureContext())); }
+    catch (contextError) { console.error('[browser-contract] context unavailable:', contextError.message); }
+  }
   throw error;
 } finally {
   if (review && !review.finished) review.finish(false);
