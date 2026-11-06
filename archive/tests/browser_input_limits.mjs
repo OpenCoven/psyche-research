@@ -74,7 +74,8 @@ try {
     const codes = {Tab: 9, Enter: 13, a: 65};
     for (const type of ['keyDown', 'keyUp']) {
       await call('Input.dispatchKeyEvent', {type, key: name,
-        code: name === 'a' ? 'KeyA' : name, windowsVirtualKeyCode: codes[name], modifiers});
+        code: name === 'a' ? 'KeyA' : name, windowsVirtualKeyCode: codes[name], modifiers,
+        ...(type === 'keyDown' && name === 'Enter' ? {text: '\r', unmodifiedText: '\r'} : {})});
     }
   };
   const waitFor = async (expression, message) => {
