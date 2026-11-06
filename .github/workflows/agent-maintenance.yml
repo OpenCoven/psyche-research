@@ -1,0 +1,35 @@
+name: Agent maintenance inventory
+on:
+  pull_request:
+    paths:
+      - '.agents/**'
+      - '.github/workflows/agent-maintenance.yml'
+  schedule:
+    - cron: '23 14 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: read
+  checks: read
+  statuses: read
+concurrency:
+  group: agent-maintenance-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify maintenance collector
+        run: python3 -m unittest discover -s .agents/skills/project-maintenance/tests -v
+      - name: Collect project and pruning evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .agents/skills/project-maintenance/scripts/audit.py --summary --output var/agent-maintenance/latest.json
