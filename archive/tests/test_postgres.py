@@ -353,7 +353,9 @@ from archive.models import Appeal, Report, RateBucket, Work, WorkOSIdentity, Wor
 # Use the exact ephemeral CI service's clients rather than an unrelated runner version.
 container = os.environ.get('POSTGRES_TEST_CONTAINER_ID', '')
 assert shutil.which('docker') and re.fullmatch(r'[a-f0-9]{12,64}', container), 'Logical recovery requires the dedicated PostgreSQL CI service container'
-assert db.pg_version // 10000 == 16, 'This recovery drill requires the PostgreSQL 16 service'
+expected_major = int(os.environ.get('POSTGRES_EXPECTED_MAJOR', '16'))
+assert expected_major in (16, 18), 'This recovery drill supports only the PostgreSQL 16 and 18 test services'
+assert db.pg_version // 10000 == expected_major, 'The PostgreSQL service differs from the selected recovery major'
 sensitive_values = [os.environ.get('DATABASE_URL'), database.get('PASSWORD'), database.get('USER'), str(database['NAME'])]
 
 def container_command(tool, *arguments, input_file=None, output_file=None):
@@ -373,7 +375,8 @@ def container_command(tool, *arguments, input_file=None, output_file=None):
 
 for tool in ('pg_dump', 'pg_restore'):
     version = container_command(tool, '--version').decode()
-    assert re.search(r'\(PostgreSQL\) 16\.', version), 'Recovery client/server major versions differ'
+    match = re.search(r'\(PostgreSQL\) ([0-9]+)\.', version)
+    assert match and int(match.group(1)) == expected_major, 'Recovery client/server major versions differ'
 
 # Cover private intake, human decisions, appeals, reports, exact versions, withdrawal, roles and sessions.
 withdrawn_sentinel = 'SYNTHETIC-PG-RESTORE-WITHDRAWN-BODY-8c410'
