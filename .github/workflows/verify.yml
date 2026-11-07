@@ -39,11 +39,20 @@ jobs:
           subprocess.run([sys.executable,'manage.py','check','--deploy','--fail-level','WARNING'],env=env,check=True)
           PY
   postgres-guarantees:
+    name: ${{ matrix.check_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - postgres: '16'
+            check_name: postgres-guarantees
+          - postgres: '18'
+            check_name: postgres18-guarantees
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: coven_test
           POSTGRES_PASSWORD: test-only-password
@@ -59,6 +68,7 @@ jobs:
       LOCAL_DEVELOPMENT: '1'
       DATABASE_URL: postgres://coven_test:test-only-password@127.0.0.1:5432/test_coven_research?sslmode=disable
       POSTGRES_GUARANTEE_TESTS: '1'
+      POSTGRES_EXPECTED_MAJOR: ${{ matrix.postgres }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
