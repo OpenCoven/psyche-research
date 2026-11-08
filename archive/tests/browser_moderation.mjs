@@ -94,6 +94,24 @@ try {
         (result.exceptionDetails?.exception?.className || result.exceptionDetails?.text || 'unknown'));
       return result.result.value;
     };
+    page.invoke = async (fn, ...values) => {
+      const global = await page.call('Runtime.evaluate', {expression: 'globalThis'});
+      assert.ok(global.result.objectId, 'Current renderer global is required');
+      try {
+        const result = await page.call('Runtime.callFunctionOn', {
+          objectId: global.result.objectId, functionDeclaration: fn.toString(),
+          arguments: values.map(value => ({value})), returnByValue: true, awaitPromise: true,
+        });
+        assert.ok(!result.exceptionDetails, 'Renderer function failed: ' +
+          (result.exceptionDetails?.exception?.className || result.exceptionDetails?.text || 'unknown'));
+        return result.result.value;
+      } finally {
+        // A native form submission may already have destroyed its old context.
+        await page.call('Runtime.releaseObject', {objectId: global.result.objectId}).catch(error => {
+          if (!/Cannot find context|Cannot find object|Inspected target navigated/.test(error.message)) throw error;
+        });
+      }
+    };
     await page.call('Page.enable');
     page.mainFrameId = (await page.call('Page.getFrameTree')).frameTree.frame.id;
     await page.call('Page.setLifecycleEventsEnabled', {enabled: true});
@@ -127,16 +145,16 @@ try {
           ...(type === 'keyDown' && key === 'Enter' ? {text: '\r', unmodifiedText: '\r'} : {})});
     };
     page.tabTo = async selector => {
-      assert.equal(await page.eval('document.querySelectorAll(' + JSON.stringify(selector) + ').length'),
+      assert.equal(await page.invoke(target => document.querySelectorAll(target).length, selector),
         1, 'Keyboard target must identify exactly one control: ' + selector);
-      for (let n = 0; !(await page.eval('document.activeElement.matches(' + JSON.stringify(selector) + ')')); n++) {
+      for (let n = 0; !(await page.invoke(target => document.activeElement.matches(target), selector)); n++) {
         assert.ok(n < 100, 'Keyboard cannot reach ' + selector); await page.key('Tab');
       }
     };
-    page.fill = fields => page.eval(`(() => { for (const [id, value] of Object.entries(${JSON.stringify(fields)})) {
+    page.fill = fields => page.invoke(values => { for (const [id, value] of Object.entries(values)) {
       const field = document.getElementById(id); if (!field) throw new Error('Missing fixed fixture field');
       if (field.type === 'checkbox') field.checked = value; else field.value = value;
-    } })()`);
+    } }, fields);
     page.type = async (selector, text) => {
       await page.call('Page.bringToFront');
       await page.tabTo(selector);
@@ -159,17 +177,17 @@ try {
       const old = (await page.call('Page.getFrameTree')).frameTree.frame.loaderId;
       // Adversarial direct requests still use the browser's native form path.
       // Page fetch is correctly forbidden by the application's no-connect CSP.
-      await page.eval(`(() => {
+      await page.invoke((target, data) => {
         const form = document.createElement('form'); form.method = 'POST';
-        form.action = ${JSON.stringify(pathname)}; form.hidden = true;
-        const fields = {...${JSON.stringify(data)},
+        form.action = target; form.hidden = true;
+        const fields = {...data,
           csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value};
         for (const [name, value] of Object.entries(fields)) {
           const input = document.createElement('input'); input.type = 'hidden';
           input.name = name; input.value = value; form.append(input);
         }
         document.body.append(form); form.requestSubmit();
-      })()`);
+      }, pathname, data);
       await page.wait(async () => {
         const frame = (await page.call('Page.getFrameTree')).frameTree.frame;
         return frame.loaderId !== old && page.loadedLoaders.has(frame.loaderId);
