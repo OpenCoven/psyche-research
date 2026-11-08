@@ -29,7 +29,7 @@
     "archive/tests/test_postgres.py": "51301fc07ba5c3980ba76c115ebd052daa3085f71510b05fe8c6e8b81c1abab5",
     "archive/tests/browser_moderation.mjs": "d75822a4323b4822f226677a9fd454cf508bcdfe38e61f86043aaab1553b2851",
     "archive/tests/run_browser_moderation.py": "de0fca6a76df020667267031c52c6fccfe6605b4bc02a8699b080e3410a51832",
-    "archive/tests/rehearse_database_roles.py": "9b33339f8c0d012b2fce71f5766c3c020140f4b15bfb9184ccdf842cddbee39d",
+    "archive/tests/rehearse_database_roles.py": "c9040c22d1f009b62d62d00c444341a5dc4584c98d6eea233f08a93c6b488307",
     "archive/tests/run_database_role_rehearsal.py": "cbfc4dd9aa9b63c8e47b2f82ba15f4d6393d71a2d9e771397e9736d551bb5e23",
     "archive/tests/test_database_role_cleanup.py": "460d430a03c93e09cb4ba22375f8c998c949f764c47c8143cb126ee604f9824f",
     "archive/tests/test_database_role_environment.py": "af1cba61c138450cc78f82c25a603b03df071d245984106711c5202b826261a3",

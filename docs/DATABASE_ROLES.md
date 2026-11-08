@@ -6,9 +6,9 @@ The actual selected Neon database was observed on 2026-11-08 running PostgreSQL 
 
 ## Canonical invocation and hosted staging proposal
 
-Use `python -I -B archive/tests/run_database_role_rehearsal.py` with the explicit trusted bin directory, expected major, committed source and a fresh output path; see [the canonical receipt](evidence/STAGING_CANDIDATE_20261108.md). Do not invoke the underlying fixture directly from an ambient operator shell. The original input SHA-256 is `389ef4c1307b77c7039a4d0e2662d4a1a01f6325e1edfc4cba3152e449e89a3b`; canonical isolation changes produce `9b33339f8c0d012b2fce71f5766c3c020140f4b15bfb9184ccdf842cddbee39d` and 29 checks. Historical direct-script receipts below assume their recorded known-clean environments.
+Use `python -I -B archive/tests/run_database_role_rehearsal.py` with the explicit trusted bin directory, expected major, committed source and a fresh output path; see [the canonical receipt](evidence/STAGING_CANDIDATE_20261108.md). Do not invoke the underlying fixture directly from an ambient operator shell. The original input SHA-256 is `389ef4c1307b77c7039a4d0e2662d4a1a01f6325e1edfc4cba3152e449e89a3b`; canonical isolation and grant-actor corrections produce `c9040c22d1f009b62d62d00c444341a5dc4584c98d6eea233f08a93c6b488307` and 29 checks. Historical direct-script receipts below assume their recorded known-clean environments.
 
-For the separately approved hosted setup, use `neondb` only on source branch `br-rapid-snow-bcykarsv` after verifying exact resource/database/owner and absence of unexpected roles, relations and user functions. Stop on a collision or incompatible managed-provider ownership; do not transfer system ownership. Create these purpose roles as NOLOGIN first, then apply the database-local schema/default-function grants shown below with the approved database name. LOGIN activation and credential setting are separate secure operator steps in [the execution request](STAGING_EXECUTION_REQUEST_20261108.md), not commands for the public console. Reapply database-local defaults before object creation independently on both restore targets. No grants are executed by this document.
+For the separately approved hosted setup, use `neondb` only on source branch `br-rapid-snow-bcykarsv` after verifying exact resource/database/owner and absence of unexpected roles, relations and user functions. Stop on a collision or incompatible managed-provider ownership; do not transfer system ownership. The operator/database owner creates purpose roles as NOLOGIN and applies only its database/schema grants below. The operator is not assumed to be a PostgreSQL superuser or a member of the purpose roles. Securely activate the migrator first; then authenticate as that exact migrator to set its own database-local function defaults before migrations/restore and to grant access to its own objects afterward. Activate runtime/backup only after those grants. LOGIN activation and credential setting are separate secure operator steps in [the execution request](STAGING_EXECUTION_REQUEST_20261108.md), not commands for the public console. Reapply database-local defaults before object creation independently on both restore targets. No grants are executed by this document.
 
 ```sql
 CREATE ROLE psyche_migrator NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
@@ -16,14 +16,19 @@ CREATE ROLE psyche_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICA
 CREATE ROLE psyche_backup NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 REVOKE ALL ON DATABASE neondb FROM PUBLIC;
 GRANT CONNECT ON DATABASE neondb TO psyche_migrator, psyche_runtime, psyche_backup;
--- Connected to this exact neondb, before migration-owned objects are created:
+-- As database/schema owner, connected to this exact neondb:
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA public TO psyche_migrator;
 GRANT USAGE ON SCHEMA public TO psyche_runtime, psyche_backup;
-ALTER DEFAULT PRIVILEGES FOR ROLE psyche_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ```
 
-Run serialized reviewed migrations as the migrator, then apply the exact table/sequence grant block below. Inspect every resulting table/function owner and ACL, explicitly require the existing `archive_reject_append_only()` function to deny PUBLIC/runtime/backup EXECUTE and verify a fresh migration-owned probe function denies runtime/backup calls with SQLSTATE 42501. Revoke EXECUTE from PUBLIC/runtime/backup on that existing function if necessary under this approved policy; a changed default alone does not fix an old function ACL. Remove the probe before archive verification/backup. Do not grant role membership or use provider administrative access presets. Reject unexpected schemas/objects rather than silently expanding `ALL TABLES` scope. Runtime denial checks must cover DDL, role/database creation, SET ROLE, migration-history writes and immutable writes; backup must deny writes and DDL. Keep owner/migrator/backup secrets offline.
+After secure migrator activation, assert `current_user = psyche_migrator` and `current_database() = neondb` in its authenticated connection, then run its own default policy before migrations or restore. No administrative or inter-role membership is needed:
+
+```sql
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+```
+
+Run serialized reviewed migrations as the migrator, then issue the exact table/sequence grant block below in that same object-owner identity. The owner role's broad read/write memberships alone do not confer object grant authority. Inspect every resulting table/function owner and ACL, explicitly require the existing `archive_reject_append_only()` function to deny PUBLIC/runtime/backup EXECUTE and verify a fresh migration-owned probe function denies runtime/backup calls with SQLSTATE 42501. Revoke EXECUTE from PUBLIC/runtime/backup on that existing function if necessary under this approved policy; a changed default alone does not fix an old function ACL. Remove the probe before archive verification/backup. Do not grant role membership or use provider administrative access presets. Reject unexpected schemas/objects rather than silently expanding `ALL TABLES` scope. Runtime denial checks must cover DDL, role/database creation, SET ROLE, migration-history writes and immutable writes; backup must deny writes and DDL. Keep owner/migrator/backup secrets offline.
 
 ## Proposed separation
 
@@ -51,10 +56,11 @@ GRANT CONNECT ON DATABASE synthetic_role_contract TO psyche_migrator, psyche_run
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA public TO psyche_migrator;
 GRANT USAGE ON SCHEMA public TO psyche_runtime, psyche_backup;
-ALTER DEFAULT PRIVILEGES FOR ROLE psyche_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+-- Reconnect as psyche_migrator in this exact database before object creation:
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ```
 
-Run the reviewed migrations as `psyche_migrator`, then the operator applies the following grants. They cover the current committed schema, including application-managed auth/session/control tables; this is a trusted application-server identity, not per-participant database authorization. Application authorization remains mandatory. No automatic future-table grants are installed: each schema change requires review and a deliberate grant refresh. Functions added later need an explicit execution policy.
+Run the reviewed migrations as `psyche_migrator`, then that object-owner identity applies the following grants. The local fixture also now uses the migrator for its own defaults and object grants; earlier frozen receipts used a synthetic superuser for those administrative calls and do not prove hosted operator authority. They cover the current committed schema, including application-managed auth/session/control tables; this is a trusted application-server identity, not per-participant database authorization. Application authorization remains mandatory. No automatic future-table grants are installed: each schema change requires review and a deliberate grant refresh. Functions added later need an explicit execution policy.
 
 ```sql
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO psyche_runtime;

@@ -78,8 +78,10 @@ def schema_grants(database):
         admin.execute('REVOKE ALL ON SCHEMA public FROM PUBLIC')
         admin.execute('GRANT USAGE, CREATE ON SCHEMA public TO psyche_migrator')
         admin.execute('GRANT USAGE ON SCHEMA public TO psyche_runtime, psyche_backup')
-        # Default privileges are database-local; apply before migrations or restore.
-        admin.execute('ALTER DEFAULT PRIVILEGES FOR ROLE psyche_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC')
+    # The managed owner is not a superuser/member of the purpose role.
+    # Set defaults as their actual owner, in this database before object creation.
+    with connect(MIGRATOR, database) as migration:
+        migration.execute('ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC')
 
 
 def check_function_privileges(database):
@@ -108,7 +110,8 @@ def check_function_privileges(database):
 
 
 def data_grants(database):
-    with connect(database=database) as admin:
+    # Only the object owner issues grants; no operator role membership is needed.
+    with connect(MIGRATOR, database) as admin:
         admin.execute('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO psyche_runtime')
         admin.execute('REVOKE INSERT, UPDATE, DELETE ON django_migrations FROM psyche_runtime')
         admin.execute('REVOKE UPDATE, DELETE ON archive_version, archive_decision, archive_event FROM psyche_runtime')

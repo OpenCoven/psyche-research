@@ -1,5 +1,5 @@
 {
-  "revision": "bb2c47ea2584118f7ffd9e53d8189b585c0a8ad4",
+  "revision": "eba10e1c9e86ca823c1db61415373a8f9c93bd1e",
   "synthetic_only": true,
   "transport": "private UNIX socket; no TCP/TLS",
   "provider_acceptance": false,
@@ -36,17 +36,17 @@
   ],
   "first_failure": null,
   "expected_major": 18,
-  "fixture_sha256": "9b33339f8c0d012b2fce71f5766c3c020140f4b15bfb9184ccdf842cddbee39d",
+  "fixture_sha256": "c9040c22d1f009b62d62d00c444341a5dc4584c98d6eea233f08a93c6b488307",
   "tool_versions": {
     "postgres": "postgres (PostgreSQL) 18.6",
     "initdb": "initdb (PostgreSQL) 18.6",
     "pg_dump": "pg_dump (PostgreSQL) 18.6",
     "pg_restore": "pg_restore (PostgreSQL) 18.6"
   },
-  "source_archive_sha256": "8afbf4dec06e8a4dca7743d11be2e8ef248d7e9be55201c1112ea8c2634a7927",
+  "source_archive_sha256": "30cbd41b6f3cdd3a189f751b5d7ce970a6c49161ee72fd7172b5a70487d0de45",
   "installed_pins_matched": 18,
   "server_version": 180006,
-  "dump_sha256": "2bf47c22f948b5e35e0f91a1a02d58bf04e1349d18c48c094c1b6c135b9b5295",
+  "dump_sha256": "fe02c74c25df8a62b2990d956d2727d4d3ca5c921308e29eba32e61554799328",
   "status": "passed",
   "server_stopped": true,
   "final_server_status_exit": 3
