@@ -39,11 +39,20 @@ jobs:
           subprocess.run([sys.executable,'manage.py','check','--deploy','--fail-level','WARNING'],env=env,check=True)
           PY
   postgres-guarantees:
+    name: ${{ matrix.check_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - postgres: '16'
+            check_name: postgres-guarantees
+          - postgres: '18'
+            check_name: postgres18-guarantees
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: coven_test
           POSTGRES_PASSWORD: test-only-password
@@ -59,6 +68,7 @@ jobs:
       LOCAL_DEVELOPMENT: '1'
       DATABASE_URL: postgres://coven_test:test-only-password@127.0.0.1:5432/test_coven_research?sslmode=disable
       POSTGRES_GUARANTEE_TESTS: '1'
+      POSTGRES_EXPECTED_MAJOR: ${{ matrix.postgres }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -114,4 +124,94 @@ jobs:
             var/browser-review/README.md
           include-hidden-files: false
           if-no-files-found: error
+          retention-days: 7
+  browser-moderation-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements.txt
+      - name: Install moderation screenshot font prerequisites
+        run: |
+          # Match the existing synthetic input/review runner's signed packages.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+          apt_options=(-o Acquire::Retries=0 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update -qq --error-on=any
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji
+      - name: Private human moderation on isolated synthetic loopback app
+        run: python archive/tests/run_browser_moderation.py
+      - name: Preserve synthetic moderation review evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-moderation-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            var/moderation-browser-review/*.png
+            var/moderation-browser-review/report.json
+            var/moderation-browser-review/index.html
+            var/moderation-browser-review/README.md
+          include-hidden-files: false
+          if-no-files-found: warn
+          retention-days: 7
+  database-role-contract:
+    name: database-role-contract-pg${{ matrix.postgres }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '18']
+    env:
+      PG_MAJOR: ${{ matrix.postgres }}
+      ROLE_IMAGE: psyche-role-rehearsal:${{ matrix.postgres }}
+      QUALIFICATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Build disposable role-rehearsal image from an allowlisted context
+        run: |
+          install -d -m 700 var/role-image-context
+          cp requirements.txt var/role-image-context/requirements.txt
+          cp archive/tests/role_rehearsal.Dockerfile var/role-image-context/Dockerfile
+          docker build --build-arg PG_MAJOR="$PG_MAJOR" -t "$ROLE_IMAGE" var/role-image-context
+      - name: Restricted-role workflow and isolated recovery without network
+        run: |
+          role_uid=$(docker run --rm --entrypoint id "$ROLE_IMAGE" -u)
+          role_gid=$(docker run --rm --entrypoint id "$ROLE_IMAGE" -g)
+          sudo install -d -m 700 -o "$role_uid" -g "$role_gid" var/role-private-output
+          docker run --rm --network none \
+            -e PGHOSTADDR=127.0.0.1 -e PGPORT=1 -e PGSERVICE=synthetic-invalid \
+            -e PGPASSWORD=SYNTHETIC -e PGPASSFILE=/synthetic-invalid \
+            -e DATABASE_URL=postgres://synthetic.invalid/unusable -e VERCEL=1 \
+            --mount "type=bind,src=$GITHUB_WORKSPACE,dst=/source,readonly" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/var/role-private-output,dst=/evidence" \
+            "$ROLE_IMAGE" /source/archive/tests/run_database_role_rehearsal.py \
+            --pg-bin "/usr/lib/postgresql/$PG_MAJOR/bin" \
+            --expected-major "$PG_MAJOR" --source-revision "$QUALIFICATION_SHA" \
+            --output /evidence/run
+      - name: Export only the synthetic metadata receipt
+        if: always()
+        run: |
+          umask 077
+          install -d -m 700 var/role-review
+          if sudo test -f var/role-private-output/run/role-report.json; then
+            sudo install -m 600 -o "$(id -u)" -g "$(id -g)" var/role-private-output/run/role-report.json var/role-review/role-report.json
+          fi
+      - name: Preserve role qualification receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-role-review-pg${{ matrix.postgres }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: var/role-review/role-report.json
+          include-hidden-files: false
+          if-no-files-found: warn
           retention-days: 7

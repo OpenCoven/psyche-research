@@ -1,5 +1,13 @@
 # Vercel hosting candidate and approval packet
 
+## Canonical staging candidate — 2026-11-08
+
+The combined staging candidate and its current evidence are tracked in [STAGING_REQUIREMENTS_20261108.md](STAGING_REQUIREMENTS_20261108.md), [the qualification receipt](evidence/STAGING_CANDIDATE_20261108.md), [the actual Neon dossier](NEON_CONTRACT_20261108.md) and [the consolidated execution request](STAGING_EXECUTION_REQUEST_20261108.md). Main remains `bb2c47ea2584118f7ffd9e53d8189b585c0a8ad4`; PR #34/#36 are separate drafts. Canonical source publication is explicitly authorized; earlier publication holds below do not apply to this owned candidate. Final combined-head CI, artifact verification and published-head review are completion gates recorded in its draft PR.
+
+The selected Neon resource already exists and read-only SQL verifies PostgreSQL 18.6, administrative owner membership and one-day history. No restricted application identity or seven-day history is qualified. The legacy pooler flag is deprecated, so it does not prove pooling is unavailable. Actual WorkOS exchanges now validate and correctly reject the unbound founder with 403; account enrollment, completed app login/logout, protected hosting, provider/off-host recovery and human/policy acceptance remain separate. No provider write, secret transfer, deployment, spending or intake activation is included. Full pilot stays NO-GO with `PILOT_APPROVED=0`, paused intake, unavailable reviews/vouches and disabled reputation.
+
+The dated material below is retained historical evidence. Use the linked current matrix for superseded source, resource-absence, credential-absence, missing-choice and execution-authority statements; earlier passing revisions do not qualify this candidate's changed head.
+
 Status: hosting target selected by the user; deployment, project creation, database provisioning, purchases, new persistent credentials, real intake, invitations, and launch remain unapproved. Updated 2026-11-06: the user selected existing `0xbuns/psyche-research` for protected synthetic staging only. Its ID is `prj_KpONwA0jddpWRBIVQGt22FbZX7t2`; the selection is not deployment or resource-execution approval. This packet keeps the existing Django application and its server-rendered workflow. It does not authorize a platform rewrite or claim a Vercel deployment exists.
 
 [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md) supplies the current source/CI checkpoint, a concrete but unapproved staging proposal, provider/protection recommendations, execution sheets, cost/recovery objectives and missing target/operator decisions. Use it to resolve the actual identifiers and prepare one consolidated staging request; this document remains the environment and operational contract.
