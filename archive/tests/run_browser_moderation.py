@@ -72,7 +72,7 @@ def prepare(scratch, review):
         available.bind(('127.0.0.1', 0))
         port = available.getsockname()[1]
     files = ['archive/tests/run_browser_moderation.py', 'archive/tests/browser_moderation.mjs',
-             'archive/tests/browser_review.mjs', 'archive/views.py', 'archive/services.py',
+             'archive/tests/browser_review.mjs', 'archive/tests/browser_fonts.py', 'archive/views.py', 'archive/services.py',
              'archive/forms.py', 'archive/models.py', 'static/archive/site.css', '.github/workflows/verify.yml']
     files += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'templates').rglob('*.html'))
     fixture = {'origin': f'http://127.0.0.1:{port}', 'cookies': cookies,
@@ -140,6 +140,8 @@ def main():
             print(json.dumps({'fixture_preparation': 'passed', 'submissions': 4,
                               'intake': 'paused', 'browser_checks': 'unrun'}))
             return
+        from archive.tests.browser_fonts import font_environment
+        fixture['source']['font_environment'] = font_environment()
         review.mkdir(parents=True, mode=0o700, exist_ok=False)
         config = scratch / 'fixture.json'
         config.write_text(json.dumps(fixture))

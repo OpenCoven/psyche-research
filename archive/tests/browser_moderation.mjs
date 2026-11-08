@@ -213,7 +213,9 @@ try {
       main: document.querySelectorAll('main#main').length, h1: document.querySelectorAll('h1').length})`);
     assert.equal(geometry.width, width); assert.ok(geometry.scroll <= geometry.client, 'Horizontal overflow: ' + name);
     assert.equal(geometry.main, 1); assert.equal(geometry.h1, 1);
-    await review.audit(name, width, phase, true);
+    // Focus evidence must show the actual scrolled viewport. A full-page clip
+    // can include fixed elements that are outside that viewport.
+    await review.audit(name, width, phase, phase !== 'error');
   };
   await anon.navigate(moderate);
   assert.ok((await anon.eval('location.pathname')).startsWith('/accounts/login/'));
