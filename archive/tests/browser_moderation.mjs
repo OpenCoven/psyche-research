@@ -63,7 +63,11 @@ browser.stdio[4].on('data', chunk => {
         .catch(error => failures.push(error.message));
     } else if (event.method === 'Network.responseReceived' && event.params.type === 'Document') {
       const page = pages.get(event.sessionId);
-      if (page) page.status = event.params.response.status;
+      if (page && event.params.frameId === page.mainFrameId) {
+        page.status = event.params.response.status;
+        page.documentRequestId = event.params.requestId;
+        page.documentMime = event.params.response.mimeType;
+      }
     } else if (event.method === 'Page.lifecycleEvent' && event.params.name === 'load') {
       const page = pages.get(event.sessionId);
       if (page && event.params.frameId === page.mainFrameId) page.loadedLoaders.add(event.params.loaderId);
@@ -86,7 +90,8 @@ try {
     page.call = (method, params) => call(method, params, sessionId);
     page.eval = async expression => {
       const result = await page.call('Runtime.evaluate', {expression, returnByValue: true, awaitPromise: true});
-      assert.ok(!result.exceptionDetails, 'Renderer expression failed');
+      assert.ok(!result.exceptionDetails, 'Renderer expression failed: ' +
+        (result.exceptionDetails?.exception?.className || result.exceptionDetails?.text || 'unknown'));
       return result.result.value;
     };
     await page.call('Page.enable');
@@ -149,12 +154,28 @@ try {
         return frame.loaderId !== old && page.loadedLoaders.has(frame.loaderId);
       }, 'Keyboard submission must load a new document');
     };
-    page.post = (pathname, data) => page.eval(`(async () => {
-      const body = new URLSearchParams(${JSON.stringify(data)});
-      body.set('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-      const response = await fetch(${JSON.stringify(pathname)}, {method: 'POST', body});
-      return response.status;
-    })()`);
+    page.post = async (pathname, data) => {
+      assert.equal(new URL(pathname, origin).origin, origin.origin);
+      const old = (await page.call('Page.getFrameTree')).frameTree.frame.loaderId;
+      // Adversarial direct requests still use the browser's native form path.
+      // Page fetch is correctly forbidden by the application's no-connect CSP.
+      await page.eval(`(() => {
+        const form = document.createElement('form'); form.method = 'POST';
+        form.action = ${JSON.stringify(pathname)}; form.hidden = true;
+        const fields = {...${JSON.stringify(data)},
+          csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value};
+        for (const [name, value] of Object.entries(fields)) {
+          const input = document.createElement('input'); input.type = 'hidden';
+          input.name = name; input.value = value; form.append(input);
+        }
+        document.body.append(form); form.requestSubmit();
+      })()`);
+      await page.wait(async () => {
+        const frame = (await page.call('Page.getFrameTree')).frameTree.frame;
+        return frame.loaderId !== old && page.loadedLoaders.has(frame.loaderId);
+      }, 'Direct native form request must load its response');
+      return page.status;
+    };
     return page;
   };
   const anon = await createPage('anonymous');
@@ -295,7 +316,12 @@ try {
   assert.ok(!text.includes('SYNTHETIC PRIVATE'));
   assert.ok(!text.includes('SYNTHETIC revised claims before appeal.'));
   await audit(anon, 'published-version', 320);
-  const exported = await anon.eval(`fetch(${JSON.stringify(versionPath + 'export/')}).then(r => r.json())`);
+  await anon.navigate(versionPath + 'export/');
+  assert.equal(anon.status, 200);
+  assert.equal(anon.documentMime, 'application/json');
+  const responseBody = await anon.call('Network.getResponseBody', {requestId: anon.documentRequestId});
+  const exported = JSON.parse(responseBody.base64Encoded ?
+    Buffer.from(responseBody.body, 'base64').toString('utf8') : responseBody.body);
   assert.equal(exported.research.claims, 'SYNTHETIC final frozen claims after appeal.');
   assert.ok(!JSON.stringify(exported).includes('SYNTHETIC PRIVATE'));
   checks.push('public exact snapshot and no private decision/appeal content');
