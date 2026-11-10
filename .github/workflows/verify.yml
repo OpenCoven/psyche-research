@@ -112,6 +112,8 @@ jobs:
           sudo apt-get "${apt_options[@]}" install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji
       - name: Native input counts and full multilingual save on isolated loopback app
         run: python archive/tests/run_browser_input_limits.py
+      - name: WorkOS sign-in redirect chain under the application CSP on isolated loopback mocks
+        run: python archive/tests/run_browser_form_action.py
       - name: Preserve synthetic browser review evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

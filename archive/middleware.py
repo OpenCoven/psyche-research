@@ -45,7 +45,9 @@ class BoundaryMiddleware:
             response=response or self.get_response(request)
         except (RequestDataTooBig,TooManyFieldsSent):
             response=HttpResponse('Request exceeds the intake limit.',status=413)
-        form_action = "'self' https://api.workos.com" if settings.AUTH_PROVIDER == 'workos' else "'self'"
+        # Browsers check form-action on every redirect of a form submission: the WorkOS API, then hosted AuthKit.
+        form_action = ' '.join(filter(None, ["'self'", 'https://api.workos.com', settings.WORKOS_AUTHKIT_ORIGIN])
+                               ) if settings.AUTH_PROVIDER == 'workos' else "'self'"
         response['Content-Security-Policy']=f"default-src 'none'; style-src 'self'; img-src 'self'; form-action {form_action}; base-uri 'none'; frame-ancestors 'none'"
         response['Permissions-Policy']='camera=(), microphone=(), geolocation=()'
         # Keep paths and OAuth query strings private without making browser POST Origin null.
