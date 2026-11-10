@@ -192,6 +192,41 @@ class WorkOSAuthenticationTests(TestCase):
         self.assertEqual(urlsplit(signed_out['Location']).path, '/user_management/sessions/logout')
         self.assertNotIn('_auth_user_id', browser.session)
 
+    @override_settings(ALLOWED_HOSTS=['testserver', 'other.example.invalid'])
+    def test_sign_out_returns_only_to_the_configured_callback_origin(self):
+        self.sign_in()
+        hostile = 'https://attacker.invalid/'
+        signed_out = self.client.post('/accounts/logout/?' + urlencode({'return_to': hostile, 'next': '//attacker.invalid'}),
+            urlencode({'return_to': hostile, 'next': hostile, 'redirect_uri': hostile}),
+            content_type='application/x-www-form-urlencoded', HTTP_HOST='other.example.invalid',
+            HTTP_REFERER=hostile, HTTP_ORIGIN=hostile, HTTP_X_FORWARDED_HOST='attacker.invalid',
+            HTTP_X_FORWARDED_PROTO='https')
+        self.assertEqual(signed_out.status_code, 302)
+        location = urlsplit(signed_out['Location'])
+        self.assertEqual((location.scheme, location.netloc, location.path),
+                         ('https', 'api.workos.com', '/user_management/sessions/logout'))
+        self.assertEqual(parse_qs(location.query, strict_parsing=True),
+                         {'session_id': ['session_synthetic'], 'return_to': ['http://testserver/']})
+        self.api.user_management.get_logout_url.assert_called_once_with(
+            session_id='session_synthetic', return_to='http://testserver/')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_sign_out_return_is_the_callback_origin_root_only(self):
+        for callback, origin in [
+                ('https://research.example.invalid/accounts/workos/callback/', 'https://research.example.invalid/'),
+                ('https://research.example.invalid:8443/accounts/workos/callback/', 'https://research.example.invalid:8443/'),
+                ('http://127.0.0.1:8011/accounts/workos/callback/', 'http://127.0.0.1:8011/'),
+                ('http://[::1]:8011/accounts/workos/callback/', 'http://[::1]:8011/')]:
+            with self.subTest(callback=callback), override_settings(WORKOS_REDIRECT_URI=callback):
+                self.assertEqual(auth.logout_return_to(), origin)
+
+    def test_sign_out_without_provider_session_stays_local(self):
+        self.client.force_login(self.author)
+        signed_out = self.client.post('/accounts/logout/', urlencode({'return_to': 'https://attacker.invalid/'}),
+                                      content_type='application/x-www-form-urlencoded')
+        self.assertEqual(signed_out['Location'], '/')
+        self.api.user_management.get_logout_url.assert_not_called()
+
     def test_provider_failure_is_redacted_and_attempt_is_not_retried(self):
         self.api.user_management.authenticate_with_code.side_effect = RuntimeError('SYNTHETIC_SECRET private-token@example.invalid')
         state = self.begin()
