@@ -211,13 +211,26 @@ class WorkOSAuthenticationTests(TestCase):
             session_id='session_synthetic', return_to='http://testserver/')
         self.assertNotIn('_auth_user_id', self.client.session)
 
-    def test_sign_out_return_is_the_callback_origin_root_only(self):
+    def test_sign_out_return_is_the_canonical_callback_origin_root_only(self):
+        path = '/accounts/workos/callback/'
         for callback, origin in [
-                ('https://research.example.invalid/accounts/workos/callback/', 'https://research.example.invalid/'),
-                ('https://research.example.invalid:8443/accounts/workos/callback/', 'https://research.example.invalid:8443/'),
-                ('http://127.0.0.1:8011/accounts/workos/callback/', 'http://127.0.0.1:8011/'),
-                ('http://[::1]:8011/accounts/workos/callback/', 'http://[::1]:8011/')]:
-            with self.subTest(callback=callback), override_settings(WORKOS_REDIRECT_URI=callback):
+                ('https://research.example.invalid', 'https://research.example.invalid/'),
+                ('https://research.example.invalid:8443', 'https://research.example.invalid:8443/'),
+                ('http://127.0.0.1:8011', 'http://127.0.0.1:8011/'),
+                ('http://[::1]:8011', 'http://[::1]:8011/'),
+                # Non-canonical spellings of one origin must yield one registered Sign-out URI.
+                ('https://Research.Example.Invalid', 'https://research.example.invalid/'),
+                ('HTTPS://RESEARCH.EXAMPLE.INVALID:8443', 'https://research.example.invalid:8443/'),
+                ('https://research.example.invalid:443', 'https://research.example.invalid/'),
+                ('http://127.0.0.1:80', 'http://127.0.0.1/'),
+                ('http://localhost:443', 'http://localhost:443/'),
+                ('https://research.example.invalid:', 'https://research.example.invalid/'),
+                ('http://[::1]:80', 'http://[::1]/'),
+                ('https://[2001:DB8::1]', 'https://[2001:db8::1]/'),
+                # Userinfo, even empty, is never echoed.
+                ('https://:@research.example.invalid', 'https://research.example.invalid/'),
+                ('https://synthetic-user:SYNTHETIC-SECRET@research.example.invalid:8443', 'https://research.example.invalid:8443/')]:
+            with self.subTest(callback=callback), override_settings(WORKOS_REDIRECT_URI=callback + path):
                 self.assertEqual(auth.logout_return_to(), origin)
 
     def test_sign_out_without_provider_session_stays_local(self):

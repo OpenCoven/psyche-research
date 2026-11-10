@@ -236,13 +236,19 @@ def callback(request):
 
 
 def logout_return_to():
-    """Return only to this deployment's origin, taken from the callback that settings validated.
+    """Return only to this deployment's canonical origin root, from the validated callback.
 
     Without an explicit return_to WorkOS uses the environment's default sign-out URI, which
-    need not be this deployment. Request data and headers never influence this value.
+    need not be this deployment. Request data and headers never influence this value. The
+    lowercase host (re-bracketed for IPv6) and only a non-default port are kept; userinfo
+    never is, so the value matches one registered Sign-out URI per deployment.
     """
     callback = urlsplit(settings.WORKOS_REDIRECT_URI)
-    return f'{callback.scheme}://{callback.netloc}/'
+    host = callback.hostname
+    origin = f'{callback.scheme}://' + (f'[{host}]' if ':' in host else host)
+    if callback.port is not None and callback.port != {'http': 80, 'https': 443}.get(callback.scheme):
+        origin += f':{callback.port}'
+    return origin + '/'
 
 
 @require_POST
