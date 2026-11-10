@@ -39,8 +39,9 @@ def postgres_config(url,local=False):
             raise ValueError()
         options={'sslmode':mode,'connect_timeout':10,'prepare_threshold':None}
         if not pooled_host(parsed.hostname):
-            # The pooler rejects the options startup parameter. Pooled sessions must
-            # instead prove role-in-database defaults on connect (verify_session_timeouts).
+            # The pooler rejects the options startup parameter. Pooled sessions rely on
+            # runtime role-in-database defaults instead; verify_session_timeouts is only
+            # a fail-closed canary for them (docs/DATABASE_ROLES.md).
             options['options']=STARTUP_TIMEOUTS
         if mode=='verify-full':
             options['sslrootcert']=root_certificates()
@@ -73,8 +74,16 @@ def session_timeouts_within_bounds(rows):
     return True
 
 def verify_session_timeouts(sender,connection,**kwargs):
-    """connection_created receiver. Under transaction pooling a session SET is unreliable,
-    so a session whose startup packet did not pin the timeouts must already carry them."""
+    """connection_created receiver: a fail-closed canary, not a per-transaction guarantee.
+
+    A session whose startup options do not pin the timeouts (a pooled endpoint) must show
+    bounded role-in-database defaults on the server connection serving this query. Under
+    PgBouncer transaction pooling later transactions may use other server connections, so
+    the guarantee itself rests on (1) the defaults being present on every server connection
+    in the runtime role/database pool, (2) nothing issuing a session-level SET of these
+    settings, since transaction mode does not reset session state, and (3) every pooled
+    server connection having started after the defaults were applied.
+    """
     if connection.vendor!='postgresql' or timeouts_pinned_at_startup(connection.settings_dict.get('OPTIONS') or {}):
         return
     from django.db import OperationalError

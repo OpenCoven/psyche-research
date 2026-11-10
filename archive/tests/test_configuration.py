@@ -111,7 +111,7 @@ class FakeConnection:
 ROLE_DEFAULTS=[('lock_timeout','5000','ms','database user'),('statement_timeout','10000','ms','database user')]
 
 class PooledTimeoutContract(SimpleTestCase):
-    """Pooled endpoints cannot take startup options; their sessions must prove role defaults instead."""
+    """Pooled endpoints cannot take startup options; a fail-closed canary checks their role defaults instead."""
     DIRECT=['ep-synthetic-123456.c-16.us-east-1.aws.neon.tech','127.0.0.1','db.example',
             'pooler.example','ep-synthetic.pooler-region.example','ep-synthetic-pooler-2.example']
     POOLED=['ep-synthetic-123456-pooler.c-16.us-east-1.aws.neon.tech','EP-SYNTHETIC-POOLER.example']

@@ -5,6 +5,7 @@ LOCAL_DEVELOPMENT=1 with DATABASE_URL naming a test_ database for a live run.
 Only randomly created cr_test_ schemas and newly created test_coven_restore_ and test_coven_timeouts_
 databases are changed or dropped; the latter's role-in-database settings are reset and dropped with it.
 """
+import ipaddress
 import os
 from pathlib import Path
 import subprocess
@@ -122,7 +123,7 @@ if (database['ENGINE'] != 'django.db.backends.postgresql'
         or os.environ.get('POSTGRES_GUARANTEE_TESTS') != '1'
         or not str(database['NAME']).startswith('test_')):
     raise RuntimeError('Live PostgreSQL guarantees require explicit opt-in and a dedicated test_ database in local test mode.')
-ipaddress.ip_address(database['HOST'])
+ipaddress.ip_address(database['HOST'])  # The test method skips before this for hostnames.
 admin = connections['default']
 assert timeouts_pinned_at_startup(admin.settings_dict['OPTIONS']), 'The direct test service must pin startup timeouts'
 name = 'test_coven_timeouts_' + uuid.uuid4().hex
@@ -210,6 +211,11 @@ run_durable_refresh_boundary()
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
 
     def test_live_pooled_session_requires_bounded_runtime_role_timeout_defaults(self):
+        try:
+            ipaddress.ip_address(connection.settings_dict['HOST'])
+        except ValueError:
+            self.skipTest('The pooled timeout drill reaches the service through libpq hostaddr, which needs an '
+                          'IP-literal DATABASE_URL host such as 127.0.0.1; a hostname such as localhost is not used.')
         environment = {**os.environ, 'DJANGO_SETTINGS_MODULE': 'config.settings'}
         result = subprocess.run([sys.executable, '-c', POOLED_TIMEOUTS_SCRIPT], cwd=ROOT, env=environment,
                                 capture_output=True, text=True, timeout=120)
