@@ -3,6 +3,12 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
+# The Vercel Python builder (@vercel/python 31.0.0) imports these settings during
+# Django discovery and passes every uppercase value, secrets included, to
+# @vercel/build-utils debug(), which prints when VERCEL_BUILDER_DEBUG,
+# NOW_BUILDER_DEBUG or VERCEL_DEBUG_PREFIX is non-empty. Refuse before reading secrets.
+if any(os.environ.get(name) for name in ('VERCEL_BUILDER_DEBUG', 'NOW_BUILDER_DEBUG', 'VERCEL_DEBUG_PREFIX')):
+    raise ImproperlyConfigured('Vercel builder debug output (VERCEL_BUILDER_DEBUG, NOW_BUILDER_DEBUG or VERCEL_DEBUG_PREFIX) would print every setting, including secrets, to build logs. Unset it. Values are not logged.')
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOCAL_DEVELOPMENT = os.environ.get('LOCAL_DEVELOPMENT') == '1'
 DEBUG = False

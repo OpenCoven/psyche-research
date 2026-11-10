@@ -1,5 +1,8 @@
 import json
 import os
+import secrets
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest import skipIf
@@ -198,6 +201,55 @@ class PooledTimeoutContract(SimpleTestCase):
             connection_created.send(sender=FakeConnection,connection=connection)
         self.assertEqual(connection.executed,[SESSION_TIMEOUTS_SQL])
         self.assertEqual(connection.closed,1)
+
+# Mirrors the Vercel builder's Django settings discovery (templates/vc_django_settings.py).
+SETTINGS_DISCOVERY=('import importlib,json\n'
+    "module=importlib.import_module('config.settings')\n"
+    'print(json.dumps({k:getattr(module,k) for k in dir(module) if k.isupper()},default=str))\n')
+BUILDER_DEBUG_VARIABLES=['VERCEL_BUILDER_DEBUG','NOW_BUILDER_DEBUG','VERCEL_DEBUG_PREFIX']
+
+class BuilderDebugExposure(SimpleTestCase):
+    """Settings refuse to load where the Vercel builder would print them to build logs."""
+    def setUp(self):
+        self.secret_key=secrets.token_urlsafe(64)
+        self.password='SYNTHETIC-'+secrets.token_hex(16)
+        self.environment={key:value for key,value in os.environ.items() if key not in BUILDER_DEBUG_VARIABLES}
+        self.environment.update(VERCEL='1',LOCAL_DEVELOPMENT='0',AUTH_PROVIDER='local',
+            DJANGO_SECRET_KEY=self.secret_key,DJANGO_ALLOWED_HOSTS='research.example.invalid',
+            DATABASE_URL=f'postgres://runtime:{self.password}@db.example.invalid/neondb?sslmode=verify-full')
+
+    def discover(self,**changes):
+        environment={**self.environment,**changes}
+        return subprocess.run([sys.executable,'-c',SETTINGS_DISCOVERY],cwd=Path(__file__).resolve().parents[2],
+                              env=environment,text=True,capture_output=True,timeout=60)
+
+    def test_discovery_without_debug_output_would_otherwise_serialize_secrets(self):
+        for changes in [{},{name:'' for name in BUILDER_DEBUG_VARIABLES}]:
+            with self.subTest(changes=changes):
+                result=self.discover(**changes)
+                self.assertEqual(result.returncode,0,result.stderr)
+                # This is why builder debug output must never run with these settings.
+                self.assertIn(self.secret_key,result.stdout)
+                self.assertIn(self.password,result.stdout)
+
+    def test_builder_debug_variables_refuse_settings_without_echoing_values(self):
+        cases=[(name,value) for name in BUILDER_DEBUG_VARIABLES for value in ['1','0','[builder] ']]
+        for name,value in cases:
+            with self.subTest(name=name,value=value):
+                result=self.discover(**{name:value})
+                self.assertNotEqual(result.returncode,0)
+                self.assertEqual(result.stdout,'')
+                self.assertIn('ImproperlyConfigured',result.stderr)
+                self.assertIn('Vercel builder debug output',result.stderr)
+                for private in [self.secret_key,self.password,'db.example.invalid']:
+                    self.assertNotIn(private,result.stderr)
+
+    def test_local_builds_without_platform_marker_are_refused_too(self):
+        result=self.discover(VERCEL='',LOCAL_DEVELOPMENT='1',DATABASE_URL='',VERCEL_BUILDER_DEBUG='1')
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(result.stdout,'')
+        self.assertIn('Vercel builder debug output',result.stderr)
+        self.assertNotIn(self.secret_key,result.stderr)
 
 class DatabaseConfiguration(SimpleTestCase):
     def test_managed_postgres_requires_verified_tls_and_never_echoes_url(self):
