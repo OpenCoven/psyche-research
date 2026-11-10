@@ -1,5 +1,6 @@
 // Synthetic, loopback-only: click the real WorkOS sign-in button and report where the form-submitted navigation ends.
 // Chromium maps api.workos.com and the synthetic AuthKit hosts to a local HTTPS mock and trusts only that mock's key.
+// Every other hostname fails to resolve and proxies are disabled, so no browser request can reach a real service.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,13 +11,15 @@ assert.ok(Number(process.versions.node.split('.')[0]) >= 22, 'Node 22+ with nati
 const fixture = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const origin = new URL(fixture.origin);
 assert.equal(origin.hostname, '127.0.0.1');
-assert.match(fixture.host_rules, /^(MAP [a-z0-9.-]+ 127\.0\.0\.1:\d+(, )?)+$/);
+assert.match(fixture.host_rules, /^(MAP [a-z0-9.-]+ 127\.0\.0\.1:\d+, )+MAP \* ~NOTFOUND, EXCLUDE 127\.0\.0\.1$/,
+  'Only the mapped hosts may resolve, all to loopback; every other name must fail to resolve.');
 const binary = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']
   .map(name => spawnSync('which', [name], {encoding: 'utf8'}).stdout.trim()).find(Boolean);
 assert.ok(binary, 'A supported installed Chromium binary is required.');
 const profile = fs.mkdtempSync(path.join(path.dirname(process.argv[2]), 'chromium-profile-'));
 const browser = spawn(binary, ['--headless=new', '--disable-background-networking', '--disable-sync',
   '--disable-extensions', '--no-first-run', '--no-default-browser-check', '--disable-features=HttpsUpgrades',
+  '--no-proxy-server', '--disable-component-update', '--disable-quic',
   `--host-resolver-rules=${fixture.host_rules}`, `--ignore-certificate-errors-spki-list=${fixture.spki}`,
   '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], {stdio: ['ignore', 'ignore', 'pipe']});
 let browserLog = '';

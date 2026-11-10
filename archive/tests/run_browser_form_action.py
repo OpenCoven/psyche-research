@@ -3,8 +3,9 @@
 Browsers apply CSP form-action to every redirect of a form-submitted navigation. The sign-in button POSTs to the
 app, which redirects to https://api.workos.com, which redirects to the environment's hosted AuthKit origin. This
 contract runs the real application in WorkOS mode on loopback and lets Chromium resolve api.workos.com and two
-synthetic AuthKit hosts to a local HTTPS mock through --host-resolver-rules, trusting only that mock's key. No request
-leaves the machine and no provider is contacted. It requires that the configured AuthKit origin completes the chain
+synthetic AuthKit hosts to a local HTTPS mock through --host-resolver-rules, trusting only that mock's key. Every
+other hostname is mapped to NOTFOUND and proxies are disabled, so no browser request can reach WorkOS or any other
+real service. It requires that the configured AuthKit origin completes the chain
 and that an unlisted origin is still refused, so the directive stays enforced rather than removed.
 """
 import base64
@@ -172,8 +173,9 @@ def main():
                 for case, mock in mocks.items():
                     fixture = scratch / f'fixture-{case}.json'
                     mock_port = mock.server_address[1]
-                    fixture.write_text(json.dumps({'origin': origin, 'spki': spki, 'host_rules': ', '.join(
-                        f'MAP {host} 127.0.0.1:{mock_port}' for host in ('api.workos.com', AUTHKIT, UNLISTED))}))
+                    rules = [f'MAP {host} 127.0.0.1:{mock_port}' for host in ('api.workos.com', AUTHKIT, UNLISTED)]
+                    rules += ['MAP * ~NOTFOUND', 'EXCLUDE 127.0.0.1']
+                    fixture.write_text(json.dumps({'origin': origin, 'spki': spki, 'host_rules': ', '.join(rules)}))
                     fixture.chmod(0o600)
                     results[case] = run_node(fixture)
                 listed, unlisted = results['listed'], results['unlisted']
