@@ -14,7 +14,7 @@
   box-shadow: var(--card-shadow);
   min-width: 0;
 }
-.hero-main { padding: 28px 32px; position: relative; background: radial-gradient(ellipse at 100% 0%, #f0eaf7 0, transparent 58%), var(--white); }
+.hero-main { padding: 28px 32px; position: relative; background: #f9f6fc; }
 .hero-main .eyebrow { margin-bottom: 16px; }
 .hero-main h1 { font-size: clamp(2.8rem, 4vw, 3.65rem); line-height: 1.08; letter-spacing: -.045em; }
 .hero-main h1 em { display: block; color: var(--violet); font-weight: 400; }
@@ -30,7 +30,7 @@
 .hero-note h2 { margin-top: 16px; }
 .hero-note p, .hero-note p.small { font-size: .95rem; line-height: 1.7; margin-top: 16px; }
 .hero-note .note-rule { margin-top: 18px; }
-.hero-note { background: radial-gradient(ellipse at 100% 100%, #ddd0ed, transparent 65%), var(--lilac); }
+.hero-note { background: var(--lilac); }
 .note-number, .eyebrow, .section-heading .eyebrow { font-size: .73rem; }
 .status-strip { padding: 28px 32px; gap: 28px; }
 .status-strip .eyebrow { font-size: .7rem; }
@@ -47,7 +47,7 @@
 .step-number { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--lilac); font-size: .78rem; }
 .principle-grid h3 { margin-top: 24px; }
 .principle-grid p { font-size: .96rem; line-height: 1.8; }
-.final-callout { padding: 32px; margin-bottom: 48px; gap: 32px; position: relative; background: linear-gradient(120deg, #eee6f5, #fffefa 70%); }
+.final-callout { padding: 32px; margin-bottom: 48px; gap: 32px; position: relative; background: #f3edf8; }
 .callout-spark { position: absolute; top: 20px; right: 24px; color: var(--violet); font: 2rem/1 var(--sans); }
 .final-callout > div:first-of-type { padding-right: 24px; }
 .final-callout > div + div { padding-top: 0; }
