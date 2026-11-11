@@ -3,6 +3,12 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
+# The Vercel Python builder (@vercel/python 31.0.0) imports these settings during
+# Django discovery and passes every uppercase value, secrets included, to
+# @vercel/build-utils debug(), which prints when VERCEL_BUILDER_DEBUG,
+# NOW_BUILDER_DEBUG or VERCEL_DEBUG_PREFIX is non-empty. Refuse before reading secrets.
+if any(os.environ.get(name) for name in ('VERCEL_BUILDER_DEBUG', 'NOW_BUILDER_DEBUG', 'VERCEL_DEBUG_PREFIX')):
+    raise ImproperlyConfigured('Vercel builder debug output (VERCEL_BUILDER_DEBUG, NOW_BUILDER_DEBUG or VERCEL_DEBUG_PREFIX) would print every setting, including secrets, to build logs. Unset it. Values are not logged.')
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOCAL_DEVELOPMENT = os.environ.get('LOCAL_DEVELOPMENT') == '1'
 DEBUG = False
@@ -58,6 +64,7 @@ WORKOS_CLIENT_ID = os.environ.get('WORKOS_CLIENT_ID', '')
 WORKOS_REDIRECT_URI = os.environ.get('WORKOS_REDIRECT_URI', '')
 WORKOS_ISSUER = os.environ.get('WORKOS_ISSUER', '')
 WORKOS_COOKIE_PASSWORD = os.environ.get('WORKOS_COOKIE_PASSWORD', '')
+WORKOS_AUTHKIT_ORIGIN = os.environ.get('WORKOS_AUTHKIT_ORIGIN', '')
 if AUTH_PROVIDER == 'workos':
     from urllib.parse import urlsplit
     from cryptography.fernet import Fernet
@@ -65,6 +72,17 @@ if AUTH_PROVIDER == 'workos':
     try:
         callback = urlsplit(WORKOS_REDIRECT_URI)
         issuer = urlsplit(WORKOS_ISSUER)
+        # The sign-in form's redirect chain ends on the hosted AuthKit origin, and browsers apply CSP form-action
+        # to every redirect of a form-submitted navigation. Accept one exact HTTPS DNS origin and rebuild it from its
+        # validated parts, so nothing else can reach the header.
+        authkit = urlsplit(WORKOS_AUTHKIT_ORIGIN)
+        authkit_host = authkit.hostname or ''
+        if (authkit.scheme != 'https' or '@' in authkit.netloc or authkit.path not in {'', '/'} or authkit.query
+            or authkit.fragment or authkit.port == 0 or not re.fullmatch(
+                r'(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}', authkit_host)
+            or authkit.netloc.lower() not in {authkit_host, f'{authkit_host}:{authkit.port}'}):
+            raise ValueError()
+        WORKOS_AUTHKIT_ORIGIN = 'https://' + authkit_host + (f':{authkit.port}' if authkit.port not in {None, 443} else '')
         Fernet(WORKOS_COOKIE_PASSWORD.encode())
         local_callback = LOCAL_DEVELOPMENT and callback.hostname in {'localhost', '127.0.0.1', '::1'}
         if (not WORKOS_API_KEY.startswith('sk_') or not re.fullmatch(r'client_[A-Za-z0-9]{1,120}', WORKOS_CLIENT_ID)
@@ -77,7 +95,7 @@ if AUTH_PROVIDER == 'workos':
             or issuer.query or issuer.fragment):
             raise ValueError()
     except (ValueError, TypeError, UnicodeError):
-        raise ImproperlyConfigured('WorkOS requires a server API key, client ID, distinct Fernet session key, exact allowed callback and configured HTTPS token issuer. Secret values are not logged.') from None
+        raise ImproperlyConfigured('WorkOS requires a server API key, client ID, distinct Fernet session key, exact allowed callback, exact hosted AuthKit HTTPS origin and configured HTTPS token issuer. Secret values are not logged.') from None
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
