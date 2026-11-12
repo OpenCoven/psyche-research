@@ -1,5 +1,14 @@
 # Psyche Research decisions
 
+## D014: qualify dependency pins against integrated source
+
+Recorded 2026-11-12 UTC for source integration #40–#43. Select WorkOS 10.8.0, Django 6.1.3 and sqlparse 0.6.1 with both published wheel/source hashes verified against fresh PyPI metadata and downloaded bytes. Python 3.13 remains the qualified installation target; the complete transitive lock remains exact and unchanged apart from these three version updates. Django 6.1.3 supersedes the 6.1.2 runtime recorded in D010; the original 5.2 LTS recommendation remains historical.
+
+Review the called APIs and affected product guarantees before integrating dependency proposals. WorkOS's new non-user-token check is in SDK Session.authenticate(), which this adapter does not call; the existing adapter and unchanged SDK refresh path retain their separately reviewed identity, durable token-consumption, redaction and canonical logout behavior. Django's patch/security fixes retain the existing forms, CSRF, migrations and immutable/private-public boundaries. sqlparse fixes parser/formatter defects since 0.5.5 and satisfies Django's declared dependency, while its upstream end-of-maintenance remains an explicit future ownership risk. No submitted-SQL feature or parser replacement is introduced.
+
+[The integration receipt](evidence/MAIN_INTEGRATION_20261111.md) records exact source/check references, independent real-SDK and combined-version tests, the browser cleanup finding and repair, hash installation, and remaining hardening/acceptance limits. Dependency qualification, source merge, hosted behavior, human acceptance and pilot GO remain distinct. No source operation changes hosted endpoint mode, role defaults, credentials, the paused-intake guards or the original staging deadline.
+
+
 Updated 2026-11-04. Engineering choices below are reversible implementation decisions under the task authorization. Policy/terms adoption, an accountable operator, hosting, new persistent production credentials, costs, outreach, deployment, and pilot opening remain human approval gates. No earlier archive charter or discussion was available in the repository or narrow neighboring documentation search; the attached task is the product charter.
 
 ## D013: selected non-secret synthetic staging defaults

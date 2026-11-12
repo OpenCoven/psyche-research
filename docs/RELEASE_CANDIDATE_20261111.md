@@ -1,3 +1,7 @@
+# Integration update — 2026-11-12 UTC
+
+This qualified candidate was integrated normally by #40 at `6dd6313c1de3969798af0d2f1a7898390d76dafc`, preserving its reviewed tree `4b5a0f1fd316074e12f35290f400cd1ff6d24b22`. Current dependency integration, first failures, retained findings and final exact-main qualification are recorded in [the integration receipt](evidence/MAIN_INTEGRATION_20261111.md), [D014](DECISIONS.md#d014-qualify-dependency-pins-against-integrated-source) and #41–#43. The preparation-only authority and pending qualification language below describe the original candidate run; the later source-integration authorization superseded that merge restriction. All existing worktrees and evidence remain retained. Deployment and pilot activation retain their separate gates.
+
 # Coherent release candidate — 2026-11-11
 
 This candidate combines main `302bbe93452e6e9cc5e6714b5fb9498f7f9e1721` (merged UI #39) with staging source `5150063afbd0316642ac7ca2cbeb4a24cbf8595f` (#38), including canonical qualification `212b622f6b02357a166d81f2e51ed723bb7d0667` (#37). The merge preserves both histories without conflicts. Existing drafts #34/#36/#37/#38 and their owners remain intact. This is source preparation and qualification; no merge, deployment, provider mutation or pilot activation is authorized.
