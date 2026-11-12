@@ -1,0 +1,29 @@
+{
+  "fixture_sha256": "389ef4c1307b77c7039a4d0e2662d4a1a01f6325e1edfc4cba3152e449e89a3b",
+  "controls": [
+    {
+      "control": "success",
+      "status": "passed",
+      "raised": false,
+      "first_failure": null
+    },
+    {
+      "control": "cleanup-failure",
+      "status": "failed",
+      "raised": true,
+      "first_failure": "RuntimeError: Owned temporary server cleanup was not verified"
+    },
+    {
+      "control": "preserve-first-failure",
+      "status": "failed",
+      "raised": true,
+      "first_failure": "Earlier failure"
+    },
+    {
+      "control": "old-cleanup-regression-rejected",
+      "passed": true
+    }
+  ],
+  "no_server_started": true,
+  "scope": "AST-extracted actual finally block with mocked subprocesses only"
+}

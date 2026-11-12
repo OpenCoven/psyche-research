@@ -1,0 +1,39 @@
+{
+  "base": "bb2c47ea2584118f7ffd9e53d8189b585c0a8ad4",
+  "inputs": {
+    "pr34": {
+      "head": "81a8ad08dac7ad97683248342c0c489e24bdd838",
+      "patch_sha256": "89024612c02d4574e8959e25f0bf90dba4f700f2aa3bb26b5a46cbb723308d7f"
+    },
+    "pr36": {
+      "head": "7ce5dd3e866d5c9883753f02affc5428b566eb81",
+      "patch_sha256": "22d4d51be0d5e9734f22bd62c76031a67800b89714a90eef245ba7971bbb2ae4"
+    },
+    "role_snapshot_sha256": {
+      "docs/AGENT_READINESS.md": "2105fc7b9f1d0ab6c6bb52d20ae02265445f876498ede7e1fafac00e3ff55dd8",
+      "docs/STATUS.md": "c81626bed6d9ea732327b7dfeacc1f88dc6528b63b2b41be278a1736a6d69520",
+      "archive/tests/rehearse_database_roles.py": "389ef4c1307b77c7039a4d0e2662d4a1a01f6325e1edfc4cba3152e449e89a3b",
+      "docs/DATABASE_ROLES.md": "a4573f9e0a7cea08ca631821681ad96e96f36232abe53ee594bbe1ae1eef8ed5",
+      "docs/evidence/DATABASE_ROLES_20261108.md": "4c3340e7a0d09ca350aec3df5d6c737df973a7bf6320b770b0887f64ce131b32",
+      "docs/evidence/DATABASE_ROLE_REVIEW_RESPONSE_20261108.md": "6584141156e63136a545c2410253665e3f9df727c448f10f4204ac5f2f874367",
+      "docs/evidence/database-role-cleanup-controls-20261108.json": "d238afbce7d24337ea130105f306f24363f32a151863372a7a1be00658532d03",
+      "docs/evidence/database-role-recovery-pg16-20261108.json": "772434555b5edf618293b7addefba82ec2ae03c2c6dd860b8b97943d35eba869",
+      "docs/evidence/database-role-recovery-pg18-20261108.json": "96a19275e63af815b20c482740c8dd93774659bb1e65e70afd217b8ed054f27f",
+      "docs/evidence/database-role-reviewed-pg16-20261108.json": "75a54c0f9ec4813843d3b762b31307dac8c9e1df595644cabdf28f8a9768bf0c",
+      "docs/evidence/database-role-reviewed-pg18-20261108.json": "176cd9f348edc98fb757948834fe79c305ab3c449b0f947617de743adef3b5aa",
+      "docs/evidence/database-roles-pg18-20261108.json": "33f76fd1701f5415975e2c312e8062f229c04c0defbbb2e833f82960d19c7807"
+    }
+  },
+  "canonical_code_sha256": {
+    ".github/workflows/verify.yml": "6234ce6aaeaa7d96b34ecb0200ba34f425b9f85bf101f7984be80dd8afe401f4",
+    "archive/tests/test_postgres.py": "51301fc07ba5c3980ba76c115ebd052daa3085f71510b05fe8c6e8b81c1abab5",
+    "archive/tests/browser_moderation.mjs": "d75822a4323b4822f226677a9fd454cf508bcdfe38e61f86043aaab1553b2851",
+    "archive/tests/run_browser_moderation.py": "de0fca6a76df020667267031c52c6fccfe6605b4bc02a8699b080e3410a51832",
+    "archive/tests/rehearse_database_roles.py": "c9040c22d1f009b62d62d00c444341a5dc4584c98d6eea233f08a93c6b488307",
+    "archive/tests/run_database_role_rehearsal.py": "cbfc4dd9aa9b63c8e47b2f82ba15f4d6393d71a2d9e771397e9736d551bb5e23",
+    "archive/tests/test_database_role_cleanup.py": "460d430a03c93e09cb4ba22375f8c998c949f764c47c8143cb126ee604f9824f",
+    "archive/tests/test_database_role_environment.py": "af1cba61c138450cc78f82c25a603b03df071d245984106711c5202b826261a3",
+    "archive/tests/role_rehearsal.Dockerfile": "e6ebd92ed97f125422ed5ceea9e0d9e74fd99a41be25ad70ef65c383a4993b25"
+  },
+  "note": "Canonical isolation changes are independently reviewed separately from frozen role input; final exact head and artifacts are pinned in draft PR."
+}

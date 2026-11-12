@@ -53,7 +53,11 @@ def main():
             'dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)),
             'font_environment': font_environment(),
             'files': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in (
-                'static/archive/site.css', 'archive/tests/browser_input_limits.mjs',
+                'static/archive/site.css', 'static/archive/readability.css',
+                'templates/base.html', 'templates/archive/home.html',
+                'templates/registration/login.html', 'templates/registration/workos_login.html',
+                'templates/registration/password_change_form.html', 'templates/registration/password_change_done.html',
+                'archive/tests/browser_input_limits.mjs',
                 'archive/tests/browser_review.mjs', 'archive/tests/run_browser_input_limits.py',
                 'archive/tests/browser_fonts.py',
                 '.github/workflows/verify.yml')},
