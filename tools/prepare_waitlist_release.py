@@ -17,7 +17,7 @@ def prepare(revision, destination):
         raise ValueError('Destination must be a new absolute directory outside the repository.')
     source_files = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', revision], text=True).splitlines()
     mapping = {}
-    fixed = {'manage.py', 'requirements.txt', 'config/__init__.py', 'config/settings.py',
+    fixed = {'.python-version', 'manage.py', 'requirements.txt', 'config/__init__.py', 'config/settings.py',
              'config/database.py', 'config/waitlist_settings.py', 'config/waitlist_wsgi.py'}
     for name in source_files:
         if (name in fixed or name.startswith(('templates/waitlist/', 'static/waitlist/'))
