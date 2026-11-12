@@ -2,8 +2,10 @@
 
 SQLite runs skip these tests honestly. Set POSTGRES_GUARANTEE_TESTS=1 and
 LOCAL_DEVELOPMENT=1 with DATABASE_URL naming a test_ database for a live run.
-Only randomly created cr_test_ schemas and a newly created test_coven_restore_ database are changed or dropped.
+Only randomly created cr_test_ schemas and newly created test_coven_restore_ and test_coven_timeouts_
+databases are changed or dropped; the latter's role-in-database settings are reset and dropped with it.
 """
+import ipaddress
 import os
 from pathlib import Path
 import subprocess
@@ -104,6 +106,87 @@ def publish(row):
 '''
 
 
+POOLED_TIMEOUTS_SCRIPT = r'''
+import ipaddress
+import os
+import uuid
+import django
+django.setup()
+from django.conf import settings
+from django.db import OperationalError, connections
+from django.db.backends.postgresql.base import DatabaseWrapper
+from config.database import postgres_config, timeouts_pinned_at_startup
+
+database = connections.databases['default']
+if (database['ENGINE'] != 'django.db.backends.postgresql'
+        or not settings.LOCAL_DEVELOPMENT
+        or os.environ.get('POSTGRES_GUARANTEE_TESTS') != '1'
+        or not str(database['NAME']).startswith('test_')):
+    raise RuntimeError('Live PostgreSQL guarantees require explicit opt-in and a dedicated test_ database in local test mode.')
+ipaddress.ip_address(database['HOST'])  # The test method skips before this for hostnames.
+admin = connections['default']
+assert timeouts_pinned_at_startup(admin.settings_dict['OPTIONS']), 'The direct test service must pin startup timeouts'
+name = 'test_coven_timeouts_' + uuid.uuid4().hex
+quoted = admin.ops.quote_name(name)
+# The synthetic -pooler label selects the pooled contract; hostaddr reaches the local service without DNS.
+pooled = postgres_config('postgres://synthetic@ep-synthetic-pooler.invalid/' + name + '?sslmode=disable', local=True)
+assert 'options' not in pooled['OPTIONS'], 'A pooled endpoint must not receive startup options'
+pooled_settings = {**admin.settings_dict, 'NAME': name, 'HOST': pooled['HOST'],
+                   'OPTIONS': {**pooled['OPTIONS'], 'hostaddr': database['HOST']}}
+
+def run(statement):
+    with admin.cursor() as cursor:
+        cursor.execute(statement)
+
+def pooled_session():
+    wrapper = DatabaseWrapper(dict(pooled_settings), 'synthetic_pooled')
+    try:
+        wrapper.ensure_connection()
+    except OperationalError as error:
+        assert 'timeouts are unverified' in str(error), 'Unexpected connection failure'
+        assert wrapper.connection is None, 'An unverified pooled session stayed open'
+        return None
+    try:
+        with wrapper.cursor() as cursor:
+            cursor.execute('SHOW statement_timeout')
+            statement = cursor.fetchone()[0]
+            cursor.execute('SHOW lock_timeout')
+            return statement, cursor.fetchone()[0]
+    finally:
+        wrapper.close()
+
+def role_settings():
+    with admin.cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM pg_db_role_setting')
+        return cursor.fetchone()[0]
+
+before = role_settings()
+created = False
+try:
+    run('CREATE DATABASE ' + quoted)
+    created = True
+    assert pooled_session() is None, 'Server defaults must not satisfy the pooled timeout contract'
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + " SET statement_timeout = '10s'")
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + " SET lock_timeout = '5s'")
+    assert pooled_session() == ('10s', '5s'), 'Role-in-database defaults must reach a fresh pooled-style session'
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + ' RESET statement_timeout')
+    run('ALTER DATABASE ' + quoted + " SET statement_timeout = '10s'")
+    assert pooled_session() is None, 'A database-wide default is not the documented runtime role default'
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + " SET statement_timeout = '60s'")
+    assert pooled_session() is None, 'A statement timeout above ten seconds must be refused'
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + " SET statement_timeout = '10s'")
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + ' SET lock_timeout = 0')
+    assert pooled_session() is None, 'A disabled lock timeout must be refused'
+    run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + " SET lock_timeout = '2s'")
+    assert pooled_session() == ('10s', '2s'), 'Tighter role defaults remain within bounds'
+finally:
+    if created:
+        run('ALTER ROLE CURRENT_USER IN DATABASE ' + quoted + ' RESET ALL')
+        run('DROP DATABASE ' + quoted + ' WITH (FORCE)')
+assert role_settings() == before, 'Disposable role-in-database settings outlived their database'
+'''
+
+
 @skipUnless(connection.vendor == 'postgresql', 'Live PostgreSQL backend not selected; SQLite does not prove PostgreSQL guarantees.')
 class PostgreSQLGuarantees(SimpleTestCase):
     def test_live_pause_orderings_and_competing_moderation_decisions(self):
@@ -125,6 +208,17 @@ run_durable_refresh_boundary()
         environment = {**os.environ, 'DJANGO_SETTINGS_MODULE': 'config.settings'}
         result = subprocess.run([sys.executable, '-c', script], cwd=ROOT, env=environment,
                                 capture_output=True, text=True, timeout=timeout)
+        self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
+
+    def test_live_pooled_session_requires_bounded_runtime_role_timeout_defaults(self):
+        try:
+            ipaddress.ip_address(connection.settings_dict['HOST'])
+        except ValueError:
+            self.skipTest('The pooled timeout drill reaches the service through libpq hostaddr, which needs an '
+                          'IP-literal DATABASE_URL host such as 127.0.0.1; a hostname such as localhost is not used.')
+        environment = {**os.environ, 'DJANGO_SETTINGS_MODULE': 'config.settings'}
+        result = subprocess.run([sys.executable, '-c', POOLED_TIMEOUTS_SCRIPT], cwd=ROOT, env=environment,
+                                capture_output=True, text=True, timeout=120)
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
 
     def test_live_workos_callback_is_consumed_once_across_connections(self):

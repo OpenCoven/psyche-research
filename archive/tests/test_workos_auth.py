@@ -30,6 +30,7 @@ SYNTHETIC_SETTINGS = {
     'WORKOS_REDIRECT_URI': 'http://testserver/accounts/workos/callback/',
     'WORKOS_ISSUER': 'https://api.workos.com/user_management/client_synthetic',
     'WORKOS_COOKIE_PASSWORD': base64.urlsafe_b64encode(b's' * 32).decode(),
+    'WORKOS_AUTHKIT_ORIGIN': 'https://synthetic-authkit.example.invalid',
 }
 
 
@@ -180,7 +181,8 @@ class WorkOSAuthenticationTests(TestCase):
         page = browser.get('/accounts/login/?next=//attacker.invalid')
         self.assertContains(page, 'Continue to sign in')
         self.assertNotContains(page, 'name="password"')
-        self.assertIn('https://api.workos.com', page['Content-Security-Policy'])
+        self.assertIn("; form-action 'self' https://api.workos.com https://synthetic-authkit.example.invalid; ",
+                      page['Content-Security-Policy'])
         token = browser.cookies['csrftoken'].value
         start = browser.post('/accounts/workos/start/', urlencode({'csrfmiddlewaretoken': token, 'next': '//attacker.invalid'}), content_type='application/x-www-form-urlencoded')
         state = parse_qs(urlsplit(start['Location']).query)['state'][0]
@@ -191,6 +193,54 @@ class WorkOSAuthenticationTests(TestCase):
         signed_out = browser.post('/accounts/logout/', urlencode({'csrfmiddlewaretoken': token}), content_type='application/x-www-form-urlencoded')
         self.assertEqual(urlsplit(signed_out['Location']).path, '/user_management/sessions/logout')
         self.assertNotIn('_auth_user_id', browser.session)
+
+    @override_settings(ALLOWED_HOSTS=['testserver', 'other.example.invalid'])
+    def test_sign_out_returns_only_to_the_configured_callback_origin(self):
+        self.sign_in()
+        hostile = 'https://attacker.invalid/'
+        signed_out = self.client.post('/accounts/logout/?' + urlencode({'return_to': hostile, 'next': '//attacker.invalid'}),
+            urlencode({'return_to': hostile, 'next': hostile, 'redirect_uri': hostile}),
+            content_type='application/x-www-form-urlencoded', HTTP_HOST='other.example.invalid',
+            HTTP_REFERER=hostile, HTTP_ORIGIN=hostile, HTTP_X_FORWARDED_HOST='attacker.invalid',
+            HTTP_X_FORWARDED_PROTO='https')
+        self.assertEqual(signed_out.status_code, 302)
+        location = urlsplit(signed_out['Location'])
+        self.assertEqual((location.scheme, location.netloc, location.path),
+                         ('https', 'api.workos.com', '/user_management/sessions/logout'))
+        self.assertEqual(parse_qs(location.query, strict_parsing=True),
+                         {'session_id': ['session_synthetic'], 'return_to': ['http://testserver/']})
+        self.api.user_management.get_logout_url.assert_called_once_with(
+            session_id='session_synthetic', return_to='http://testserver/')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_sign_out_return_is_the_canonical_callback_origin_root_only(self):
+        path = '/accounts/workos/callback/'
+        for callback, origin in [
+                ('https://research.example.invalid', 'https://research.example.invalid/'),
+                ('https://research.example.invalid:8443', 'https://research.example.invalid:8443/'),
+                ('http://127.0.0.1:8011', 'http://127.0.0.1:8011/'),
+                ('http://[::1]:8011', 'http://[::1]:8011/'),
+                # Non-canonical spellings of one origin must yield one registered Sign-out URI.
+                ('https://Research.Example.Invalid', 'https://research.example.invalid/'),
+                ('HTTPS://RESEARCH.EXAMPLE.INVALID:8443', 'https://research.example.invalid:8443/'),
+                ('https://research.example.invalid:443', 'https://research.example.invalid/'),
+                ('http://127.0.0.1:80', 'http://127.0.0.1/'),
+                ('http://localhost:443', 'http://localhost:443/'),
+                ('https://research.example.invalid:', 'https://research.example.invalid/'),
+                ('http://[::1]:80', 'http://[::1]/'),
+                ('https://[2001:DB8::1]', 'https://[2001:db8::1]/'),
+                # Userinfo, even empty, is never echoed.
+                ('https://:@research.example.invalid', 'https://research.example.invalid/'),
+                ('https://synthetic-user:SYNTHETIC-SECRET@research.example.invalid:8443', 'https://research.example.invalid:8443/')]:
+            with self.subTest(callback=callback), override_settings(WORKOS_REDIRECT_URI=callback + path):
+                self.assertEqual(auth.logout_return_to(), origin)
+
+    def test_sign_out_without_provider_session_stays_local(self):
+        self.client.force_login(self.author)
+        signed_out = self.client.post('/accounts/logout/', urlencode({'return_to': 'https://attacker.invalid/'}),
+                                      content_type='application/x-www-form-urlencoded')
+        self.assertEqual(signed_out['Location'], '/')
+        self.api.user_management.get_logout_url.assert_not_called()
 
     def test_provider_failure_is_redacted_and_attempt_is_not_retried(self):
         self.api.user_management.authenticate_with_code.side_effect = RuntimeError('SYNTHETIC_SECRET private-token@example.invalid')
@@ -400,3 +450,47 @@ class WorkOSConfigurationTests(SimpleTestCase):
         result = subprocess.run([sys.executable, '-c', 'import config.settings'], env=valid,
             capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_authkit_origin_is_one_exact_https_dns_origin_rebuilt_from_validated_parts(self):
+        import os
+        import subprocess
+        import sys
+        env = {**os.environ, **SYNTHETIC_SETTINGS, 'LOCAL_DEVELOPMENT': '1', 'DJANGO_ALLOWED_HOSTS': 'testserver',
+               'DJANGO_SETTINGS_MODULE': 'config.settings',
+               'WORKOS_REDIRECT_URI': 'https://testserver/accounts/workos/callback/'}
+        def load(value):
+            return subprocess.run([sys.executable, '-c', 'import config.settings as s; print(s.WORKOS_AUTHKIT_ORIGIN)'],
+                env={**env, 'WORKOS_AUTHKIT_ORIGIN': value}, capture_output=True, text=True, timeout=10)
+        # Every other setting is valid, so each refusal below is caused by the AuthKit origin alone.
+        base = load(SYNTHETIC_SETTINGS['WORKOS_AUTHKIT_ORIGIN'])
+        self.assertEqual(base.returncode, 0, base.stderr)
+        for value in ['', 'synthetic-authkit.example.invalid', 'http://synthetic-authkit.example.invalid',
+                      'https://synthetic-authkit.example.invalid/sign-in', 'https://synthetic-authkit.example.invalid/?a=1',
+                      'https://synthetic-authkit.example.invalid/#a', 'https://user@synthetic-authkit.example.invalid',
+                      'https://@synthetic-authkit.example.invalid', 'https://user:pw@synthetic-authkit.example.invalid',
+                      'https://*.example.invalid', 'https://*', 'https://localhost', 'https://127.0.0.1', 'https://[::1]',
+                      'https://synthetic-authkit.example.invalid:0', 'https://synthetic-authkit.example.invalid:bad',
+                      'https://synthetic-authkit.example.invalid:', 'https://synthetic-authkit.example.invalid:0443',
+                      'https://synthetic-authkit.example.invalid.', 'https://-synthetic.example.invalid',
+                      "https://synthetic-authkit.example.invalid;script-src 'unsafe-inline'",
+                      "https://synthetic-authkit.example.invalid 'unsafe-inline'", 'https://a..example.invalid',
+                      'https://synthetic-authkit.example.invalid, https://attacker.invalid',
+                      'https://' + 'a' * 64 + '.example.invalid', 'SYNTHETIC_PRIVATE_BAD_ORIGIN']:
+            with self.subTest(value=value):
+                result = load(value)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('WorkOS requires', result.stderr)
+                self.assertIn('AuthKit', result.stderr)
+                self.assertNotIn('SYNTHETIC_PRIVATE', result.stderr)
+        for value, expected in [('https://synthetic-authkit.example.invalid', 'https://synthetic-authkit.example.invalid'),
+                                ('https://synthetic-authkit.example.invalid/', 'https://synthetic-authkit.example.invalid'),
+                                ('HTTPS://Synthetic-AuthKit.Example.Invalid:443/', 'https://synthetic-authkit.example.invalid'),
+                                ('https://auth.example.invalid:8443', 'https://auth.example.invalid:8443')]:
+            with self.subTest(value=value):
+                result = load(value)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout.strip(), expected)
+        local = subprocess.run([sys.executable, '-c', 'import config.settings as s; print(repr(s.WORKOS_AUTHKIT_ORIGIN))'],
+            env={**env, 'AUTH_PROVIDER': 'local', 'WORKOS_AUTHKIT_ORIGIN': 'not validated in local mode'},
+            capture_output=True, text=True, timeout=10)
+        self.assertEqual(local.returncode, 0, local.stderr)

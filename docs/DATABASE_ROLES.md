@@ -30,6 +30,23 @@ ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
 Run serialized reviewed migrations as the migrator, then issue the exact table/sequence grant block below in that same object-owner identity. The owner role's broad read/write memberships alone do not confer object grant authority. Inspect every resulting table/function owner and ACL, explicitly require the existing `archive_reject_append_only()` function to deny PUBLIC/runtime/backup EXECUTE and verify a fresh migration-owned probe function denies runtime/backup calls with SQLSTATE 42501. Revoke EXECUTE from PUBLIC/runtime/backup on that existing function if necessary under this approved policy; a changed default alone does not fix an old function ACL. Remove the probe before archive verification/backup. Do not grant role membership or use provider administrative access presets. Reject unexpected schemas/objects rather than silently expanding `ALL TABLES` scope. Runtime denial checks must cover DDL, role/database creation, SET ROLE, migration-history writes and immutable writes; backup must deny writes and DDL. Keep owner/migrator/backup secrets offline.
 
+## Pooled runtime timeouts
+
+The application sends `-c statement_timeout=10000 -c lock_timeout=5000` as a startup option to direct endpoints. Neon's transaction pooler, selected by a `-pooler` suffix on the endpoint label, rejects the `options` startup parameter, and a session-level `SET` after connecting is not reliable under PgBouncer transaction pooling because later transactions can run on different server connections. For a pooled host the application therefore omits startup options and relies on database-local defaults for the runtime role, which PostgreSQL applies whenever the pooler starts a server connection for that role and database. As the operator that created the runtime role, connected to the exact application database, set them:
+
+```sql
+ALTER ROLE psyche_runtime IN DATABASE neondb SET statement_timeout = '10s';
+ALTER ROLE psyche_runtime IN DATABASE neondb SET lock_timeout = '5s';
+```
+
+Roll out in this order: apply both defaults; recycle every pooled server connection for the runtime role and database so none predates them (for example by restarting the compute endpoint; the exact Neon recycling mechanism has not been verified); only then switch the runtime `DATABASE_URL` to the `-pooler` host. Repeat the first two steps after any change to these defaults, since PostgreSQL applies them only to server connections that start afterwards.
+
+The guarantee rests on three conditions, not on an application check: the defaults are present on every server connection in the runtime role/database pool; nothing issues a session-level `SET` of these settings, because PgBouncer transaction mode does not reset session state between clients; and every pooled server connection started after the defaults were applied. The application issues no such `SET`, but the runtime role itself can run `ALTER ROLE CURRENT_USER IN DATABASE neondb SET statement_timeout = 0`, so the runtime credential's custody is part of this guarantee.
+
+For each new connection without the startup timeouts the application runs a fail-closed canary: unless `pg_settings` reports both values in milliseconds from source `database user`, non-zero and at most 10 and 5 seconds, it closes the connection and the request receives a database error; `/health/` returns 503. Role-wide, database-wide and session values do not satisfy it. Under transaction pooling the canary samples only the server connection that serves its own query; later transactions in the same request can use other server connections. It detects absent or out-of-bounds defaults on the sampled connection but is not a per-transaction guarantee. Hosted acceptance must therefore sample `SHOW statement_timeout`, `SHOW lock_timeout` and their `pg_settings.source` across many separate requests through the pooler after connections recycle, and require 10s/5s or tighter from `database user` in every sample.
+
+Migrations, dumps and restores keep using the direct endpoint with startup options. `archive/tests/test_postgres.py` verifies the role-in-database mechanism and the canary against local PostgreSQL in a disposable database without a pooler; the canonical role-rehearsal fixture does not yet set these defaults, and actual Neon pooler behavior remains unverified.
+
 ## Proposed separation
 
 | Identity | Allowed purpose | Forbidden use |
