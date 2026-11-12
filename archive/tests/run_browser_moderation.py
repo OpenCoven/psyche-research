@@ -73,7 +73,7 @@ def prepare(scratch, review):
         port = available.getsockname()[1]
     files = ['archive/tests/run_browser_moderation.py', 'archive/tests/browser_moderation.mjs',
              'archive/tests/browser_review.mjs', 'archive/tests/browser_fonts.py', 'archive/views.py', 'archive/services.py',
-             'archive/forms.py', 'archive/models.py', 'static/archive/site.css', '.github/workflows/verify.yml']
+             'archive/forms.py', 'archive/models.py', 'static/archive/site.css', 'static/archive/readability.css', '.github/workflows/verify.yml']
     files += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'templates').rglob('*.html'))
     fixture = {'origin': f'http://127.0.0.1:{port}', 'cookies': cookies,
                'submissions': {name: str(row.pk) for name, row in rows.items()}, 'draft': str(draft.pk),

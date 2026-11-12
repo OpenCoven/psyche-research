@@ -1,5 +1,9 @@
 # Canonical staging preparation
 
+## Coherent release candidate preparation — 2026-11-11
+
+The owned `candidate/coherent-release-20261111` combines current main `302bbe93452e6e9cc5e6714b5fb9498f7f9e1721` and staging fixes `5150063afbd0316642ac7ca2cbeb4a24cbf8595f`, preserving #37 qualification ancestry and #39 UI. See [the candidate requirement matrix](RELEASE_CANDIDATE_20261111.md) for required exact-head qualification and separate deployed-source acceptance. Older source, CI and provider snapshots below retain their original scopes. No merge, deployment or pilot activation is included; existing drafts/worktrees are retained.
+
 ## Canonical staging candidate — 2026-11-08
 
 The combined staging candidate and its current evidence are tracked in [STAGING_REQUIREMENTS_20261108.md](STAGING_REQUIREMENTS_20261108.md), [the qualification receipt](evidence/STAGING_CANDIDATE_20261108.md), [the actual Neon dossier](NEON_CONTRACT_20261108.md) and [the consolidated execution request](STAGING_EXECUTION_REQUEST_20261108.md). Main remains `bb2c47ea2584118f7ffd9e53d8189b585c0a8ad4`; PR #34/#36 are separate drafts. Canonical source publication is explicitly authorized; earlier publication holds below do not apply to this owned candidate. Final combined-head CI, artifact verification and published-head review are completion gates recorded in its draft PR.
