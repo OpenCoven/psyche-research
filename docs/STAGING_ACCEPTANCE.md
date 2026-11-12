@@ -1,5 +1,13 @@
 # Protected staging rehearsal and founder decision
 
+## Canonical staging candidate — 2026-11-08
+
+The combined staging candidate and its current evidence are tracked in [STAGING_REQUIREMENTS_20261108.md](STAGING_REQUIREMENTS_20261108.md), [the qualification receipt](evidence/STAGING_CANDIDATE_20261108.md), [the actual Neon dossier](NEON_CONTRACT_20261108.md) and [the consolidated execution request](STAGING_EXECUTION_REQUEST_20261108.md). Main remains `bb2c47ea2584118f7ffd9e53d8189b585c0a8ad4`; PR #34/#36 are separate drafts. Canonical source publication is explicitly authorized; earlier publication holds below do not apply to this owned candidate. Final combined-head CI, artifact verification and published-head review are completion gates recorded in its draft PR.
+
+The selected Neon resource already exists and read-only API/catalog evidence verifies PostgreSQL 18.6, administrative owner membership and one-day history. No restricted application identity or seven-day history is qualified. The legacy pooler flag is deprecated, so it does not prove pooling is unavailable. Actual WorkOS exchanges now validate and correctly reject the unbound founder with 403; account enrollment, completed app login/logout, protected hosting, provider/off-host recovery and human/policy acceptance remain separate. No provider write, secret transfer, deployment, spending or intake activation is included. Full pilot stays NO-GO with `PILOT_APPROVED=0`, paused intake, unavailable reviews/vouches and disabled reputation.
+
+The dated material below is retained historical evidence. Use the linked current matrix for superseded source, resource-absence, credential-absence, missing-choice and execution-authority statements; earlier passing revisions do not qualify this candidate's changed head.
+
 Updated 2026-11-06 against integrated main `4f95b86cbf29b0f7013b2c6949594532451c8197`, tree `b419a8b284b0981986e91e02d60e97c51edf4f15`, and fresh read-only platform evidence. The source stack is integrated through [PR #27](https://github.com/OpenCoven/psyche-research/pull/27); earlier unpublished-source and missing-integration-authority blockers are superseded. This remains a proposed hosted execution packet. Vercel/database resources, new persistent credentials, spending and deployment have not been authorized. Pilot remains **NO-GO**. [RELEASE.md](RELEASE.md) and [STATUS.md](STATUS.md) distinguish current source, CI, rendered engine, hosted product and human acceptance.
 
 ## Current evidence and ownership
