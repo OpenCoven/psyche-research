@@ -1,3 +1,8 @@
+from django.conf import settings
+import unittest
+if settings.ROOT_URLCONF != "waitlist.urls":
+    raise unittest.SkipTest("Waitlist guarantees run separately with config.waitlist_settings.")
+
 import io
 import json
 import os
@@ -18,8 +23,12 @@ class OperatorTests(TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.ledger = self.root / 'erasures.jsonl'
+        self.ledger.touch(mode=0o600)
 
     def command(self, action, **kwargs):
+        if action in {'delete', 'purge', 'reconcile'}:
+            kwargs.setdefault('ledger', str(self.ledger))
         output = io.StringIO()
         call_command('waitlist_ops', action, stdout=output, **kwargs)
         self.assertNotIn('private@example.net', output.getvalue())
@@ -65,3 +74,20 @@ class OperatorTests(TestCase):
         self.command('purge')
         self.assertEqual(list(Registration.objects.values_list('email', flat=True)), ['fresh@example.net'])
         self.assertEqual(CollectionState.objects.get().retained_count, 1)
+
+    def test_recovery_reapplies_deletion_before_resume_and_expires_ledger(self):
+        source = self.root / 'address.txt'
+        source.write_text('private@example.net')
+        source.chmod(0o600)
+        self.command('delete', email_file=str(source))
+        Registration.objects.create(email='private@example.net', interest='reader', privacy_version='old')
+        with self.assertRaises(CommandError):
+            self.command('reconcile')
+        self.command('pause')
+        self.command('reconcile')
+        self.assertFalse(Registration.objects.exists())
+        expired = {'key': 'f' * 64, 'expires_at': (timezone.now() - timedelta(days=1)).isoformat()}
+        with self.ledger.open('a') as stream:
+            stream.write(json.dumps(expired) + '\n')
+        self.command('purge')
+        self.assertNotIn('f' * 64, self.ledger.read_text())

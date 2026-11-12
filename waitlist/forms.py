@@ -5,7 +5,8 @@ from .models import Registration
 
 class RegistrationForm(forms.Form):
     email = forms.EmailField(max_length=254, widget=forms.EmailInput(attrs={'autocomplete': 'email', 'inputmode': 'email'}))
-    interest = forms.ChoiceField(choices=[('', 'Choose your interest')] + Registration._meta.get_field('interest').choices)
+    interest = forms.ChoiceField(choices=[('', 'Choose your interest')] + Registration._meta.get_field('interest').choices,
+                                error_messages={'invalid_choice': 'Choose reader, researcher / contributor, or both.'})
     name = forms.CharField(max_length=100, required=False, label='Name (optional)', widget=forms.TextInput(attrs={'autocomplete': 'name'}))
     consent = forms.BooleanField(label='I agree to the waitlist privacy notice and to receive updates about Psyche Research availability.')
     website = forms.CharField(required=False, max_length=200, widget=forms.HiddenInput)

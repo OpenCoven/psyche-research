@@ -4,6 +4,9 @@ import hmac
 import json
 import os
 import stat
+import fcntl
+import tempfile
+from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 from django.conf import settings
@@ -55,6 +58,50 @@ def ledger_erasure(raw, key, expires):
         os.fsync(stream.fileno())
 
 
+@contextmanager
+def ledger_lock(raw):
+    path = private_path(raw)
+    fd = os.open(str(path) + '.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'a') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise CommandError('Ledger lock must be your private regular file.')
+        fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+        yield
+
+
+def read_ledger(raw):
+    entries = [json.loads(line) for line in private_read(raw).splitlines() if line]
+    for entry in entries:
+        expires = parse_datetime(entry.get('expires_at', ''))
+        key = entry.get('key', '')
+        if (len(key) != 64 or any(c not in '0123456789abcdef' for c in key)
+            or expires is None or timezone.is_naive(expires)):
+            raise CommandError('Invalid private recovery ledger.')
+    return entries
+
+
+def compact_ledger(raw, now):
+    path = private_path(raw)
+    entries = [entry for entry in read_ledger(raw) if parse_datetime(entry['expires_at']) > now]
+    fd, temporary = tempfile.mkstemp(prefix='.erasure-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            for entry in entries:
+                stream.write(json.dumps(entry, separators=(',', ':')) + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        dir_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 class Command(BaseCommand):
     help = 'Offline waitlist status, pause/resume, private JSON export, verified-request deletion and expiry/recovery cleanup.'
 
@@ -68,7 +115,12 @@ class Command(BaseCommand):
         if not settings.WAITLIST_OPERATOR_MODE or settings.ON_VERCEL:
             raise CommandError('Offline operator mode is required; serving runtimes cannot run operator commands.')
         try:
-            self.operate(options)
+            if options['action'] in {'delete', 'purge', 'reconcile'}:
+                with ledger_lock(options['ledger']):
+                    self.operate(options)
+                    compact_ledger(options['ledger'], timezone.now())
+            else:
+                self.operate(options)
         except (OSError, ValueError, UnicodeError, DatabaseError, ValidationError):
             raise CommandError('Operation failed. Private values are not logged; inspect the private target before retrying.') from None
 
@@ -96,13 +148,10 @@ class Command(BaseCommand):
             # Persist recovery suppression outside the database BEFORE deleting.
             ledger_erasure(options['ledger'], key, expires)
         if action == 'reconcile':
-            entries = [json.loads(line) for line in private_read(options['ledger']).splitlines() if line]
-            for entry in entries:
-                expires = parse_datetime(entry.get('expires_at', ''))
-                key_value = entry.get('key', '')
-                if (len(key_value) != 64 or any(c not in '0123456789abcdef' for c in key_value)
-                    or expires is None or timezone.is_naive(expires)):
-                    raise CommandError('Invalid private recovery ledger.')
+            entries = read_ledger(options['ledger'])
+        if action == 'purge':
+            # Refuse malformed/missing recovery data before database changes.
+            read_ledger(options['ledger'])
         with transaction.atomic():
             state = CollectionState.objects.select_for_update().get(pk=1)
             if action == 'status':

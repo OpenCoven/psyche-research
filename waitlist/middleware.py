@@ -33,7 +33,8 @@ class PublicBoundary(MiddlewareMixin):
     def process_response(self, request, response):
         response['Content-Security-Policy'] = "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
         response['Cache-Control'] = 'private, no-store'
-        response['Referrer-Policy'] = 'no-referrer'
+        # Retain the same-origin browser CSRF provenance on form POSTs.
+        response['Referrer-Policy'] = 'same-origin'
         response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         return response
 

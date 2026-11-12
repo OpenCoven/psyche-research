@@ -12,15 +12,15 @@ def register(cleaned):
     """Return accepted/busy/paused/limited; accepted covers duplicates and honeypots."""
     if not settings.WAITLIST_COLLECTION_ENABLED:
         return 'paused'
-    now = timezone.now()
-    minute, day = int(now.timestamp()) // 60, int(now.timestamp()) // 86400
     with transaction.atomic():
         state = CollectionState.objects.select_for_update().get(pk=1)
         if state.paused:
             return 'paused'
-        if state.minute != minute:
+        now = timezone.now()
+        minute, day = int(now.timestamp()) // 60, int(now.timestamp()) // 86400
+        if state.minute < minute:
             state.minute, state.minute_attempts = minute, 0
-        if state.day != day:
+        if state.day < day:
             state.day, state.day_attempts = day, 0
         if state.minute_attempts >= 30 or state.day_attempts >= 200:
             return 'limited'
@@ -29,7 +29,7 @@ def register(cleaned):
         state.save(update_fields=['minute', 'minute_attempts', 'day', 'day_attempts'])
         if cleaned.get('website'):
             return 'accepted'
-        key = hmac.new(settings.SECRET_KEY.encode(), f"{day}:{cleaned['email']}".encode(), hashlib.sha256).hexdigest()
+        key = hmac.new(settings.SECRET_KEY.encode(), f"{state.day}:{cleaned['email']}".encode(), hashlib.sha256).hexdigest()
         AddressBudget.objects.filter(expires_at__lte=now).delete()
         budget, _ = AddressBudget.objects.get_or_create(key=key, defaults={'expires_at': now + timedelta(days=1)})
         if budget.attempts >= 3:

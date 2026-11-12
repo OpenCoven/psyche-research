@@ -1,5 +1,9 @@
-from unittest.mock import patch
 from django.conf import settings
+import unittest
+if settings.ROOT_URLCONF != "waitlist.urls":
+    raise unittest.SkipTest("Waitlist guarantees run separately with config.waitlist_settings.")
+
+from unittest.mock import patch
 from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
 from waitlist.models import AddressBudget, CollectionState, Registration
@@ -104,3 +108,45 @@ class PublicWaitlistTests(TestCase):
         with self.assertNumQueries(0):
             self.assertEqual(self.client.get('/confirmation/').status_code, 200)
             self.assertEqual(self.client.get('/privacy/').status_code, 200)
+
+    def test_invalid_choice_never_reflects_submitted_private_value(self):
+        response = self.submit(interest='private-input@example.net')
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn(b'private-input@example.net', response.content)
+
+    def test_valid_csrf_form_can_register_in_browser_mode(self):
+        import re
+        from urllib.parse import urlencode
+        client = Client(enforce_csrf_checks=True)
+        page = client.get('/')
+        self.assertEqual(page['Referrer-Policy'], 'same-origin')
+        token = re.search(rb'name="csrfmiddlewaretoken" value="([^"]+)"', page.content).group(1).decode()
+        result = client.post('/', urlencode(self.data | {'csrfmiddlewaretoken': token}),
+                             content_type='application/x-www-form-urlencoded', HTTP_ORIGIN='http://testserver')
+        self.assertEqual(result.status_code, 302)
+
+    def test_backwards_clock_does_not_reset_abuse_budget(self):
+        from django.utils import timezone
+        future = int(timezone.now().timestamp()) // 60 + 1
+        CollectionState.objects.update(minute=future, minute_attempts=30)
+        self.assertEqual(self.submit().status_code, 429)
+        self.assertEqual(CollectionState.objects.get().minute_attempts, 30)
+
+    def test_public_wsgi_refuses_archive_settings_override(self):
+        import os, subprocess, sys
+        result = subprocess.run([sys.executable, '-c', 'import config.waitlist_wsgi'], capture_output=True, text=True,
+                                env={'PATH': os.environ['PATH'], 'HOME': os.environ['HOME'], 'DJANGO_SETTINGS_MODULE': 'config.settings'})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('isolated settings profile', result.stderr)
+
+    def test_production_settings_reject_synthetic_database_and_operator_runtime(self):
+        import os, subprocess, sys
+        base = {'PATH': os.environ['PATH'], 'HOME': os.environ['HOME'], 'VERCEL': '1', 'PILOT_APPROVED': '0',
+                'DJANGO_SECRET_KEY': 'synthetic-test-only-' + 'x' * 64, 'DJANGO_ALLOWED_HOSTS': 'research.example.invalid',
+                'WAITLIST_OPERATOR': 'Synthetic operator', 'WAITLIST_CONTACT': 'operator@example.invalid'}
+        for role, database in [('psyche_waitlist_runtime', 'synthetic_staging'), ('psyche_waitlist_operator', 'psyche_waitlist_20261111')]:
+            result = subprocess.run([sys.executable, '-c', 'import config.waitlist_settings'], capture_output=True, text=True,
+                env=base | {'DATABASE_URL': f'postgresql://{role}:synthetic-private-password@db.example.invalid/{database}?sslmode=verify-full'})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('isolated PostgreSQL', result.stderr)
+            self.assertNotIn('synthetic-private-password', result.stderr)

@@ -30,6 +30,10 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py check --fail-level WARNING
       - run: python manage.py test --verbosity 2
+      - name: Isolated public waitlist guarantees
+        run: |
+          python manage.py makemigrations --check --dry-run --settings config.waitlist_settings
+          python manage.py test waitlist.tests --settings config.waitlist_settings --verbosity 2
       - run: python manage.py collectstatic --noinput
       - name: Production settings check with an ephemeral test-only key
         run: |
@@ -87,6 +91,8 @@ jobs:
           POSTGRES_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
         run: python manage.py test archive.tests.test_postgres archive.tests.test_input_limits archive.tests.test_governance --verbosity 2
       - run: python manage.py verify_archive
+      - name: Isolated public waitlist on PostgreSQL
+        run: python manage.py test waitlist.tests --settings config.waitlist_settings --verbosity 2
   browser-input-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 10

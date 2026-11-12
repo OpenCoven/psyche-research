@@ -1,0 +1,1 @@
+{"version":3,"routes":[{"src":"/.*","dest":"/index.html","status":503,"headers":{"Cache-Control":"no-store","Retry-After":"86400","Content-Security-Policy":"default-src 'none'; base-uri 'none'; frame-ancestors 'none'","Referrer-Policy":"same-origin","X-Content-Type-Options":"nosniff"}}]}

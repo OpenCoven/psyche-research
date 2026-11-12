@@ -6,9 +6,9 @@
   "env": {"DJANGO_SETTINGS_MODULE": "config.waitlist_settings", "PILOT_APPROVED": "0"},
   "build": {"env": {"DJANGO_SETTINGS_MODULE": "config.waitlist_settings", "PILOT_APPROVED": "0"}},
   "functions": {
-    "config/wsgi.py": {
+    "config/waitlist_wsgi.py": {
       "maxDuration": 30,
-      "excludeFiles": "{archive/**,templates/archive/**,templates/registration/**,static/archive/**,waitlist/tests/**,docs/**,deploy/**,.github/**,.agents/**,var/**,.env*,.venv/**,staticfiles/**}"
+      "excludeFiles": "{archive/**,templates/archive/**,templates/registration/**,static/archive/**,waitlist/tests/**,waitlist/management/**,docs/**,deploy/**,.github/**,.agents/**,var/**,.env*,.venv/**,staticfiles/**}"
     }
   }
 }
