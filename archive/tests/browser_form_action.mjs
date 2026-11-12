@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawn, spawnSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
+import {waitForBrowserExit} from './browser_process.mjs';
 
 assert.ok(Number(process.versions.node.split('.')[0]) >= 22, 'Node 22+ with native WebSocket is required.');
 const fixture = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -93,6 +94,6 @@ try {
   await call('Browser.close').catch(() => {});
 } finally {
   socket?.close();
-  if (browser.exitCode === null) browser.kill('SIGKILL');
-  fs.rmSync(profile, {recursive: true, force: true, maxRetries: 5, retryDelay: 200});
+  await waitForBrowserExit(browser);
+  // The Python owner removes its temporary directory after terminating this isolated process group.
 }
