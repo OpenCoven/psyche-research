@@ -48,7 +48,7 @@ def address_key(email):
 
 def ledger_erasure(raw, key, expires):
     path = private_path(raw)
-    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW)
     with os.fdopen(fd, 'a') as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
@@ -141,6 +141,8 @@ class Command(BaseCommand):
             self.stdout.write('Private JSON export saved. It has the same retention and deletion obligations as the database.')
             return
         if action == 'delete':
+            # A lost/corrupt recovery ledger must never be silently recreated.
+            read_ledger(options['ledger'])
             email = private_read(options['email_file'], 512).strip().casefold()
             validate_email(email)
             key = address_key(email)

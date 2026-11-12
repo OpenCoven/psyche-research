@@ -74,6 +74,10 @@ print('restricted_runtime_registration_passed')
   assert c.execute('SELECT count(*) FROM waitlist_registration').fetchone()[0]==3
   c.execute('UPDATE waitlist_collectionstate SET paused=true WHERE id=1')
  report['steps'].append('operator_read_and_pause')
+ dump=work/'private.dump'
+ run([pg/'pg_dump','--format=custom','--file',dump,'--dbname',uri('migrator')])
+ dump.chmod(0o600)
+
  op_env=env|{'DATABASE_URL':uri('operator'),'WAITLIST_OPERATOR_MODE':'1'}
  operator_dir=work/'operator';operator_dir.mkdir(mode=0o700)
  ledger=operator_dir/'erasures.jsonl';ledger.touch(mode=0o600)
@@ -84,6 +88,20 @@ print('restricted_runtime_registration_passed')
  with psycopg.connect(uri('operator'),autocommit=True) as c:
   assert c.execute('SELECT count(*) FROM waitlist_registration').fetchone()[0]==2
  report['operator_workflow']='export_delete_purge_reconcile_passed'
+ # Restore the pre-deletion snapshot offline, then replay the external erasure.
+ restore_uri=uri('migrator').replace('/psyche_waitlist_20261111?', '/psyche_waitlist_restore?')
+ run([pg/'psql','-X','-v','ON_ERROR_STOP=1','-d',owner],input='CREATE DATABASE psyche_waitlist_restore OWNER psyche_waitlist_migrator;')
+ run([pg/'pg_restore','--no-owner','--no-acl','--single-transaction','--dbname',restore_uri,dump])
+ with psycopg.connect(restore_uri,autocommit=True) as c:
+  assert c.execute("SELECT count(*) FROM waitlist_registration WHERE email='runtime@example.net'").fetchone()[0]==1
+ run([root/'.venv/bin/python','manage.py','waitlist_ops','reconcile','--ledger',ledger],env=op_env|{'DATABASE_URL':restore_uri})
+ with psycopg.connect(restore_uri,autocommit=True) as c:
+  assert c.execute("SELECT count(*) FROM waitlist_registration WHERE email='runtime@example.net'").fetchone()[0]==0
+  assert c.execute('SELECT paused FROM waitlist_collectionstate WHERE id=1').fetchone()[0] is True
+ with psycopg.connect(uri('operator'),autocommit=True) as c:
+  assert c.execute('SELECT count(*) FROM waitlist_registration').fetchone()[0]==2
+ report['logical_restore']='pre_deletion_record_removed_by_external_ledger_source_unchanged'
+
 
  report['pause_probe']=run([root/'.venv/bin/python','-c',runtime_code.replace("=='accepted'","=='paused'")],env=env|{'DATABASE_URL':uri('runtime')})
  # Actual database outage, no simulated exception.

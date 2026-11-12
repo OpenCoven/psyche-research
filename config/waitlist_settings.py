@@ -11,6 +11,7 @@ MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'waitlist.middlew
               'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware',
               'django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'waitlist.urls'
+WSGI_APPLICATION = 'config.waitlist_wsgi.application'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates',
               'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True,
               'OPTIONS': {'context_processors': ['django.template.context_processors.request']}}]

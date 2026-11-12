@@ -43,7 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--receipt', required=True)
     options = parser.parse_args()
     receipt_path = Path(options.receipt)
-    with receipt_path.open('x') as stream:
-        os.chmod(receipt_path, 0o600)
+    fd = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as stream:
         json.dump(prepare(options.revision, options.output), stream, indent=2)
     print('Public-only release prepared; no deployment or credentials.')

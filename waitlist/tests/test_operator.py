@@ -91,3 +91,11 @@ class OperatorTests(TestCase):
             stream.write(json.dumps(expired) + '\n')
         self.command('purge')
         self.assertNotIn('f' * 64, self.ledger.read_text())
+
+    def test_missing_recovery_ledger_refuses_deletion(self):
+        source = self.root / 'address.txt'
+        source.write_text('private@example.net')
+        source.chmod(0o600)
+        with self.assertRaises(CommandError):
+            self.command('delete', email_file=str(source), ledger=str(self.root / 'missing.jsonl'))
+        self.assertTrue(Registration.objects.filter(email='private@example.net').exists())
