@@ -106,8 +106,8 @@ jobs:
           python-version: '3.13'
           cache: pip
       - run: python -m pip install --require-hashes -r requirements.txt
-      - name: Contrast calculation reference checks
-        run: node --test archive/tests/browser_review.test.mjs
+      - name: Browser lifecycle and contrast reference checks
+        run: node --test archive/tests/browser_review.test.mjs archive/tests/browser_process.test.mjs
       - name: Install multilingual screenshot prerequisites
         run: |
           # Only this disposable runner: avoid the observed stalled Azure mirror.
