@@ -1,6 +1,6 @@
 # Integrated source and dependency evidence — 2026-11-12 UTC
 
-This receipt covers the authorized source-integration checkpoint, including #40 and individually reviewed updates #41–#43. The final delivery comment on [#43](https://github.com/OpenCoven/psyche-research/pull/43) records the resulting exact main revision/tree, completed checks and final-main artifact identities. Read that current receipt before using a candidate result as main qualification. Local, hosted CI, rendered browser contracts, deployed authentication and human acceptance remain separate evidence classes.
+This receipt covers the authorized source-integration checkpoint, including #40 and individually reviewed updates #41–#43. The final delivery comment on [#43](https://github.com/OpenCoven/psyche-research/pull/43) must record the resulting exact main revision/tree, completed checks and final-main artifact identities. Read that current receipt before using a candidate result as main qualification. Local, hosted CI, rendered browser contracts, deployed authentication and human acceptance remain separate evidence classes.
 
 ## Source provenance and dispositions
 
@@ -12,7 +12,7 @@ This receipt covers the authorized source-integration checkpoint, including #40 
 | #36 | Closed with [exact provenance](https://github.com/OpenCoven/psyche-research/pull/36#issuecomment-6813475005). Browser assertions and evidence receipt match exactly; the runner adds the readability fingerprint and the workflow/status retain its contributions plus later entries. |
 | #41 | WorkOS 10.8.0, qualified head `17a350fdad8fdbee493e42a2f81f85add752b0fd`, merged as `966463ff0e6c658f145cf09d4620288a20431aa5`. [Run 43147963570](https://github.com/OpenCoven/psyche-research/actions/runs/43147963570), 11 checks and four verified artifacts pass; post-merge main checks also pass. |
 | #42 | Django 6.1.3 and isolated-browser lifecycle repair, qualified head `67b37b72083665ed630b80ee1856a4026f23178d`, tree `0b6872405363a04aed16bc5df71d005226f12ac1`, merged as `9e9aeb3b3dfef9aa224c41c47b11116779bd86a0`. [Run 43149986019](https://github.com/OpenCoven/psyche-research/actions/runs/43149986019), 11 checks and four verified artifacts pass. |
-| #43 | sqlparse 0.6.1 and this factual evidence reconciliation on the integrated #41/#42 application. Its exact-head and resulting-main qualification are recorded in the linked final delivery comment. |
+| #43 | sqlparse 0.6.1 and this factual evidence reconciliation on the integrated #41/#42 application. Its exact-head and resulting-main qualification must be recorded in the final delivery comment. |
 
 All original branches, owner worktrees and private receipts remain retained. All 28 dirty branding files were compared with the original preservation manifest and match byte for byte. The draft-source comparison records equivalence and later additions; it does not falsely claim that every original draft commit is an ancestor.
 
@@ -24,7 +24,7 @@ The official [Django 6.1.3 notes](https://docs.djangoproject.com/en/6.1/releases
 
 The official [sqlparse 0.6.1 changelog](https://raw.githubusercontent.com/andialbrecht/sqlparse/0.6.1/CHANGELOG) includes lexer/grouping/formatting denial-of-service, generated-string escaping and malformed-input fixes since 0.5.5. The application has no direct sqlparse import or submitted-SQL path; Django uses it for trusted migration/schema and diagnostic work. This release ends active upstream maintenance, with no further security fixes planned. Retain that lifecycle risk and track framework/parser ownership separately; retaining 0.5.5 would omit already available fixes.
 
-All six proposed wheel/source digests were checked against fresh TLS-verified PyPI release metadata and independently downloaded bytes; none is yanked. The changed wheels support Python 3.13 and the complete 18-package hash lock remains reproducible. WorkOS retains the same transitive ranges; Django accepts pinned asgiref 3.13.0 and sqlparse 0.6.1. Hash-pinned installation and pip check are required in each exact-head CI job. The independent review recomputed all eight retained distributions, including the old WorkOS baseline. No sdist build or arbitrary-platform claim is made.
+All six proposed wheel/source digests were checked against fresh TLS-verified PyPI release metadata and independently downloaded bytes; none is yanked. The changed wheels support Python 3.13 and the complete 18-package hash lock remains reproducible. WorkOS retains the same transitive ranges; Django accepts pinned asgiref 3.13.0 and sqlparse 0.6.1. Hash-pinned installation is required in each exact-head CI job; local pip check passed. The independent review recomputed all eight retained distributions, including the old WorkOS baseline. No sdist build or arbitrary-platform claim is made.
 
 ## Qualification, first failures and repair
 
