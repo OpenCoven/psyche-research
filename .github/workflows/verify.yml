@@ -120,6 +120,19 @@ jobs:
         run: python archive/tests/run_browser_input_limits.py
       - name: WorkOS sign-in redirect chain under the application CSP on isolated loopback mocks
         run: python archive/tests/run_browser_form_action.py
+      - name: Public waitlist mobile layout and native form workflow
+        run: python waitlist/tests/run_browser_waitlist.py
+      - name: Preserve synthetic waitlist browser evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-waitlist-browser-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            var/waitlist-browser-review/*.png
+            var/waitlist-browser-review/report.json
+          include-hidden-files: false
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve synthetic browser review evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
