@@ -1,0 +1,2 @@
+[tool.vercel]
+entrypoint = "config.waitlist_wsgi:application"

@@ -1,0 +1,41 @@
+-- Run once as the isolated database owner after serialized waitlist-only migration.
+-- Roles must already exist, with no memberships/admin flags; credentials are not SQL literals.
+-- No synthetic staging resource or archive database is a permitted target.
+BEGIN;
+DO $$ BEGIN
+  IF current_database() <> 'psyche_waitlist_20261111' THEN
+    RAISE EXCEPTION 'Wrong waitlist database';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'archive_%') THEN
+    RAISE EXCEPTION 'Archive tables are forbidden in the waitlist database';
+  END IF;
+  IF (SELECT count(*) FROM pg_roles WHERE rolname IN ('psyche_waitlist_runtime','psyche_waitlist_operator','psyche_waitlist_migrator')) <> 3
+     OR EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('psyche_waitlist_runtime','psyche_waitlist_operator','psyche_waitlist_migrator')
+                AND (rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls))
+     OR EXISTS (SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member
+                WHERE r.rolname IN ('psyche_waitlist_runtime','psyche_waitlist_operator','psyche_waitlist_migrator')) THEN
+    RAISE EXCEPTION 'Waitlist purpose roles require non-administrative flags and no memberships';
+  END IF;
+END $$;
+REVOKE ALL ON DATABASE psyche_waitlist_20261111 FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC, psyche_waitlist_runtime, psyche_waitlist_operator;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC, psyche_waitlist_runtime, psyche_waitlist_operator;
+GRANT CONNECT ON DATABASE psyche_waitlist_20261111 TO psyche_waitlist_runtime, psyche_waitlist_operator, psyche_waitlist_migrator;
+GRANT USAGE ON SCHEMA public TO psyche_waitlist_runtime, psyche_waitlist_operator, psyche_waitlist_migrator;
+GRANT CREATE ON SCHEMA public TO psyche_waitlist_migrator;
+GRANT SELECT (id,email), INSERT ON waitlist_registration TO psyche_waitlist_runtime;
+GRANT USAGE ON SEQUENCE waitlist_registration_id_seq TO psyche_waitlist_runtime;
+GRANT SELECT ON waitlist_collectionstate TO psyche_waitlist_runtime, psyche_waitlist_operator;
+GRANT UPDATE (retained_count,minute,minute_attempts,day,day_attempts) ON waitlist_collectionstate TO psyche_waitlist_runtime;
+GRANT SELECT,INSERT,UPDATE,DELETE ON waitlist_addressbudget TO psyche_waitlist_runtime;
+GRANT SELECT,DELETE ON waitlist_registration TO psyche_waitlist_operator;
+GRANT UPDATE (paused,retained_count) ON waitlist_collectionstate TO psyche_waitlist_operator;
+GRANT SELECT,INSERT,UPDATE,DELETE ON waitlist_erasure TO psyche_waitlist_operator;
+GRANT DELETE ON waitlist_addressbudget TO psyche_waitlist_operator;
+GRANT SELECT (expires_at) ON waitlist_addressbudget TO psyche_waitlist_operator;
+ALTER ROLE psyche_waitlist_runtime IN DATABASE psyche_waitlist_20261111 SET statement_timeout='10s';
+ALTER ROLE psyche_waitlist_runtime IN DATABASE psyche_waitlist_20261111 SET lock_timeout='5s';
+ALTER ROLE psyche_waitlist_operator IN DATABASE psyche_waitlist_20261111 SET statement_timeout='10s';
+ALTER ROLE psyche_waitlist_operator IN DATABASE psyche_waitlist_20261111 SET lock_timeout='5s';
+COMMIT;
